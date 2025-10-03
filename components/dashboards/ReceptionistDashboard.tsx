@@ -1,0 +1,248 @@
+import React, { useState, useEffect } from 'react';
+import { useApp } from '../../contexts/AppContext';
+import StatCard from '../ui/StatCard';
+import { UserGroupIcon, ClockIcon, CalendarDaysIcon, PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/solid';
+import { VisitStatus, VisitType, Patient } from '../../types';
+import Modal from '../ui/Modal';
+
+// Helper to get 'YYYY-MM-DD' from a Date object, respecting local timezone.
+const getLocalYYYYMMDD = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const ReceptionistDashboard: React.FC = () => {
+    const { patients, visits, clinics, addPatient, addVisit, isAddingVisit } = useApp();
+    const [isAddPatientModalOpen, setAddPatientModalOpen] = useState(false);
+    const [isAddVisitModalOpen, setAddVisitModalOpen] = useState(false);
+    
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+
+    const [newPatient, setNewPatient] = useState<Omit<Patient, 'patient_id'>>({ name: '', dob: '', gender: 'ذكر', phone: '', address: '' });
+    
+    const today = getLocalYYYYMMDD(new Date());
+    const initialFormState = {
+        clinic_id: clinics[0]?.clinic_id || 0,
+        visit_type: VisitType.FirstVisit,
+        notes: '',
+        base_amount: 0,
+        discount: '',
+        revenue_date: today,
+    };
+    const [visitFormData, setVisitFormData] = useState(initialFormState);
+    
+    // Derived values for calculation
+    const visitDiscountValue = parseFloat(visitFormData.discount) || 0;
+    const visitAmountAfterDiscount = Math.max(0, visitFormData.base_amount - visitDiscountValue);
+    
+    useEffect(() => {
+        if (isAddVisitModalOpen && visitFormData.clinic_id && clinics.length > 0) {
+            const selectedClinic = clinics.find(c => c.clinic_id === visitFormData.clinic_id);
+            if (selectedClinic) {
+                const price = visitFormData.visit_type === VisitType.FirstVisit
+                    ? selectedClinic.price_first_visit
+                    : selectedClinic.price_followup;
+                setVisitFormData(prev => ({ ...prev, base_amount: price, discount: '' }));
+            }
+        }
+    }, [visitFormData.clinic_id, visitFormData.visit_type, clinics, isAddVisitModalOpen]);
+
+    const dailyVisits = visits.filter(v => v.visit_date === today).length;
+    const waitingPatients = visits.filter(v => v.visit_date === today && v.status === VisitStatus.Waiting).length;
+
+    const filteredPatients = patients.filter(p =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.phone.includes(searchTerm)
+    );
+
+    const handleAddPatient = (e: React.FormEvent) => {
+        e.preventDefault();
+        addPatient(newPatient);
+        setNewPatient({ name: '', dob: '', gender: 'ذكر', phone: '', address: '' });
+        setAddPatientModalOpen(false);
+    };
+    
+    const handleCloseVisitModal = () => {
+        setAddVisitModalOpen(false);
+        setSelectedPatient(null);
+    };
+
+    const handleAddVisit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedPatient) return;
+        await addVisit({
+            patient_id: selectedPatient.patient_id,
+            clinic_id: visitFormData.clinic_id,
+            visit_type: visitFormData.visit_type,
+            notes: visitFormData.notes,
+            amount: visitAmountAfterDiscount,
+            revenue_date: visitFormData.revenue_date,
+        });
+        handleCloseVisitModal();
+    }
+    
+    const openAddVisitModal = (patient: Patient) => {
+        setSelectedPatient(patient);
+        const initialClinicId = clinics[0]?.clinic_id || 0;
+        const initialClinic = clinics.find(c => c.clinic_id === initialClinicId);
+        const initialPrice = initialClinic ? initialClinic.price_first_visit : 0;
+        
+        setVisitFormData({
+            ...initialFormState,
+            clinic_id: initialClinicId,
+            base_amount: initialPrice,
+            revenue_date: today,
+        });
+        setAddVisitModalOpen(true);
+    };
+    
+    const handleVisitFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setVisitFormData(prev => ({
+            ...prev,
+            [name]: name === 'clinic_id' ? Number(value) : value,
+        }));
+    };
+
+    return (
+        <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <StatCard title="إجمالي المرضى" value={patients.length} icon={UserGroupIcon} color="bg-blue-500" />
+                <StatCard title="زيارات اليوم" value={dailyVisits} icon={CalendarDaysIcon} color="bg-green-500" />
+                <StatCard title="في الانتظار" value={waitingPatients} icon={ClockIcon} color="bg-yellow-500" />
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold text-gray-700">بحث عن مريض / إضافة زيارة</h2>
+                    <button onClick={() => setAddPatientModalOpen(true)} className="flex items-center bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors">
+                        <PlusIcon className="h-5 w-5 ml-2"/>
+                        إضافة مريض جديد
+                    </button>
+                </div>
+                <div className="relative mb-4">
+                     <span className="absolute inset-y-0 right-0 flex items-center pr-3">
+                        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                    </span>
+                    <input
+                        type="text"
+                        placeholder="ابحث بالاسم أو رقم الهاتف..."
+                        className="w-full p-2 pr-10 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full text-right">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="p-3 text-sm font-semibold tracking-wide">الاسم</th>
+                                <th className="p-3 text-sm font-semibold tracking-wide">رقم الهاتف</th>
+                                <th className="p-3 text-sm font-semibold tracking-wide">إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredPatients.map(patient => (
+                                <tr key={patient.patient_id} className="border-b">
+                                    <td className="p-3">{patient.name}</td>
+                                    <td className="p-3">{patient.phone}</td>
+                                    <td className="p-3 space-x-2 space-x-reverse">
+                                        <button onClick={() => openAddVisitModal(patient)} className="bg-green-500 text-white px-3 py-1 rounded-md text-sm hover:bg-green-600">
+                                            تسجيل كشف
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <Modal title="إضافة مريض جديد" isOpen={isAddPatientModalOpen} onClose={() => setAddPatientModalOpen(false)}>
+                <form onSubmit={handleAddPatient} className="space-y-4">
+                    <input type="text" placeholder="الاسم الكامل" value={newPatient.name} onChange={e => setNewPatient({...newPatient, name: e.target.value})} className="w-full p-2 border rounded" required />
+                    <input type="date" placeholder="تاريخ الميلاد" value={newPatient.dob} onChange={e => setNewPatient({...newPatient, dob: e.target.value})} className="w-full p-2 border rounded" required />
+                    <select value={newPatient.gender} onChange={e => setNewPatient({...newPatient, gender: e.target.value as 'ذكر' | 'أنثى'})} className="w-full p-2 border rounded">
+                        <option value="ذكر">ذكر</option>
+                        <option value="أنثى">أنثى</option>
+                    </select>
+                    <input type="tel" placeholder="رقم الهاتف" value={newPatient.phone} onChange={e => setNewPatient({...newPatient, phone: e.target.value})} className="w-full p-2 border rounded" required />
+                    <input type="text" placeholder="العنوان" value={newPatient.address} onChange={e => setNewPatient({...newPatient, address: e.target.value})} className="w-full p-2 border rounded" />
+                    <button type="submit" className="w-full bg-teal-500 text-white p-2 rounded hover:bg-teal-600">إضافة</button>
+                </form>
+            </Modal>
+            
+            <Modal title={`تسجيل كشف للمريض: ${selectedPatient?.name}`} isOpen={isAddVisitModalOpen} onClose={handleCloseVisitModal}>
+                <form onSubmit={handleAddVisit} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                             <label className="block text-sm font-medium text-gray-700 mb-1">اسم المريض</label>
+                             <input type="text" value={selectedPatient?.name || ''} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100" readOnly />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">العيادة</label>
+                            <select name="clinic_id" value={visitFormData.clinic_id} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg bg-white" required >
+                                {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">نوع الزيارة</label>
+                            <select name="visit_type" value={visitFormData.visit_type} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg bg-white" required >
+                                <option value={VisitType.FirstVisit}>كشف جديد</option>
+                                <option value={VisitType.FollowUp}>متابعة</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">قيمة الكشف</label>
+                            <input type="number" value={visitFormData.base_amount} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100" readOnly />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">الخصم</label>
+                            <input type="number" name="discount" value={visitFormData.discount} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg" min="0" placeholder="0" />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">تاريخ الإيراد</label>
+                            <input
+                                type="date"
+                                name="revenue_date"
+                                value={visitFormData.revenue_date}
+                                onChange={handleVisitFormChange}
+                                className="w-full p-2 border border-gray-300 rounded-lg"
+                                required
+                            />
+                        </div>
+                        
+                        <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-1">المبلغ بعد الخصم</label>
+                             <input type="number" value={visitAmountAfterDiscount} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 font-bold text-teal-700 text-lg" readOnly />
+                        </div>
+
+
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">ملاحظات</label>
+                            <textarea name="notes" value={visitFormData.notes} onChange={handleVisitFormChange} rows={3} className="w-full p-2 border border-gray-300 rounded-lg" placeholder="أي تفاصيل إضافية..." />
+                        </div>
+                    </div>
+                    <div className="pt-4">
+                        <button 
+                            type="submit" 
+                            className="w-full bg-teal-500 text-white p-3 rounded-lg hover:bg-teal-600 disabled:bg-gray-400 transition-colors" 
+                            disabled={isAddingVisit}
+                        >
+                            {isAddingVisit ? 'جاري الإضافة...' : 'تأكيد إضافة الزيارة والإيراد'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+        </div>
+    );
+};
+
+export default ReceptionistDashboard;
