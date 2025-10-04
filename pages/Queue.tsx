@@ -21,7 +21,8 @@ const Queue: React.FC = () => {
             const isWaitingStatus = v.status === VisitStatus.Waiting || v.status === VisitStatus.InProgress;
             
             if (user?.role === Role.Doctor) {
-                return isToday && isWaitingStatus && v.clinic_id === user.clinic;
+                // FIX: Changed user.clinic to user.clinic_id to match the User type definition.
+                return isToday && isWaitingStatus && v.clinic_id === user.clinic_id;
             }
             
             return isToday && isWaitingStatus;

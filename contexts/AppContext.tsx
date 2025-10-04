@@ -1,8 +1,8 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode, useRef } from 'react';
-import { Patient, Visit, Diagnosis, User, Clinic, Revenue, Role, View, VisitStatus, VisitType } from '../types';
+import { Patient, Visit, Diagnosis, User, Clinic, Revenue, Role, View, VisitStatus, VisitType, Doctor } from '../types';
 
 // The API URL provided by the user.
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPG373QEq6QKz5l6mrbUnPirJs22aUeMbVD7lGe6W2grX6IPSKhORApDLnLAw3-lHs/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyG35J3sYxH19yFpw0JouX6w01LGC_Q-befaIDBVo4G7tfpdizL9j7sN3rrB9Gqxqw5/exec"; 
 
 // Backend column mapping, used to parse array responses from the API
 const COLUMN_MAPPING = {
@@ -10,7 +10,9 @@ const COLUMN_MAPPING = {
     Visits: ['visit_id','patient_id','clinic_id','visit_date','queue_number','status','visit_type'],
     Diagnosis: ['diagnosis_id','visit_id','doctor','diagnosis','prescription','labs_needed','notes'],
     Revenues: ['revenue_id','visit_id','patient_id','patient_name','clinic_id','amount','date','type','notes'],
-    Users: ['user_id', 'username', 'password', 'role', 'clinic']
+    Users: ['user_id', 'name', 'username', 'password', 'role', 'clinic_id', 'doctor_id', 'doctor_name'],
+    Doctors: ['doctor_id', 'doctor_name', 'specialty', 'clinic_id', 'phone', 'email', 'shift', 'status'],
+    Clinics: ['clinic_id', 'clinic_name', 'doctor_id', 'doctor_name', 'max_patients_per_day', 'price_first_visit', 'price_followup', 'shift', 'notes'],
 };
 
 // Helper function to convert the array returned by the POST request into a structured object.
@@ -21,7 +23,7 @@ const mapRowToObject = <T,>(row: any[], sheetName: keyof typeof COLUMN_MAPPING):
     keys.forEach((key, index) => {
         const value = row[index];
         // Coerce IDs and numeric fields to numbers for type consistency.
-        if (key.endsWith('_id') || ['queue_number', 'amount', 'clinic', 'price_first_visit', 'price_followup'].includes(key)) {
+        if (key.endsWith('_id') || ['queue_number', 'amount', 'price_first_visit', 'price_followup'].includes(key)) {
             obj[key] = Number(value) || 0;
         } 
         // Convert comma-separated strings for labs_needed back into an array.
@@ -47,10 +49,12 @@ interface AppContextType {
     users: User[];
     clinics: Clinic[];
     revenues: Revenue[];
+    doctors: Doctor[];
     addPatient: (patient: Omit<Patient, 'patient_id'>) => Promise<void>;
-    addVisit: (visit: Omit<Visit, 'visit_id' | 'visit_date' | 'queue_number' | 'status'> & { notes?: string; amount: number; revenue_date: string; }) => Promise<void>;
+    addVisit: (visit: Omit<Visit, 'visit_id' | 'visit_date' | 'queue_number' | 'status'>) => Promise<Visit | null>;
     addDiagnosis: (diagnosis: Omit<Diagnosis, 'diagnosis_id'>) => Promise<void>;
     addManualRevenue: (revenue: Omit<Revenue, 'revenue_id'>) => Promise<boolean>;
+    addDoctor: (doctor: Omit<Doctor, 'doctor_id'>) => Promise<void>;
     updateVisitStatus: (visitId: number, status: VisitStatus) => void; 
     addUser: (user: Omit<User, 'user_id'>) => Promise<void>;
     updateUser: (userId: number, userData: Partial<Omit<User, 'user_id'>>) => Promise<void>;
@@ -88,6 +92,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [users, setUsers] = useState<User[]>([]);
     const [clinics, setClinics] = useState<Clinic[]>([]);
     const [revenues, setRevenues] = useState<Revenue[]>([]);
+    const [doctors, setDoctors] = useState<Doctor[]>([]);
 
     // API states
     const [loading, setLoading] = useState(true);
@@ -177,6 +182,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 setUsers(processedUsers);
                 setClinics(processedClinics);
                 setRevenues(processedRevenues);
+                setDoctors(result.data.Doctors || []);
             } else {
                 throw new Error(result.message || "Failed to fetch data.");
             }
@@ -297,6 +303,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             if (result.success) {
                  // Don't show notification here, let the calling function do it for context
                 success = true;
+                await fetchData(true);
             } else {
                 showNotification(result.message || 'فشل تسجيل الإيراد', 'error');
             }
@@ -309,8 +316,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return success;
     };
 
-    const addVisit = async (visitData: Omit<Visit, 'visit_id' | 'visit_date' | 'queue_number' | 'status'> & { notes?: string; amount: number; revenue_date: string; }) => {
-        if (isAddingVisit) return;
+    const addVisit = async (visitData: Omit<Visit, 'visit_id' | 'visit_date' | 'queue_number' | 'status'>): Promise<Visit | null> => {
+        if (isAddingVisit) return null;
         setIsAddingVisit(true);
     
         try {
@@ -352,41 +359,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             const visitResult = await postData('Visits', visitToSend);
             
             if (visitResult.success && visitResult.data) {
-                // Step 4: Visit added, now use the centralized revenue function.
                 const newVisit = mapRowToObject<Visit>(visitResult.data, 'Visits');
-                const patient = patients.find(p => p.patient_id === newVisit.patient_id);
-
-                if (patient) {
-                     const revenueSuccess = await addManualRevenue({
-                        visit_id: newVisit.visit_id,
-                        patient_id: newVisit.patient_id,
-                        patient_name: patient.name,
-                        clinic_id: newVisit.clinic_id,
-                        amount: visitData.amount, 
-                        date: visitData.revenue_date,
-                        type: newVisit.visit_type,
-                        notes: visitData.notes || '',
-                    });
-                    
-                    if (revenueSuccess) {
-                        showNotification('تمت إضافة الزيارة والإيراد بنجاح', 'success');
-                    } else {
-                        console.error("Failed to add revenue via addManualRevenue from addVisit");
-                        showNotification('تمت إضافة الزيارة ولكن فشل تسجيل الإيراد', 'error');
-                    }
-                } else {
-                    console.error("Could not find patient to create revenue record.");
-                    showNotification('تمت إضافة الزيارة ولكن فشل تسجيل الإيراد (بيانات ناقصة)', 'error');
-                }
-                
-                // Step 5: Do a full background refetch to update the entire app state.
+                showNotification('تمت إضافة الزيارة بنجاح', 'success');
                 await fetchData(true);
+                return newVisit;
             } else {
                  showNotification(visitResult.message || 'فشلت إضافة الزيارة', 'error');
+                 return null;
             }
         } catch (e: any) {
             showNotification(e.message || 'فشلت إضافة الزيارة', 'error');
             console.error("Failed to add visit:", e);
+            return null;
         } finally {
             setIsAddingVisit(false);
         }
@@ -447,6 +431,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     };
 
+    const addDoctor = async (doctorData: Omit<Doctor, 'doctor_id'>) => {
+        try {
+            const result = await postData('Doctors', doctorData);
+            if (result.success) {
+                showNotification(result.message || 'تمت إضافة الطبيب بنجاح', 'success');
+                await fetchData(true);
+            } else {
+                showNotification(result.message || 'فشلت إضافة الطبيب', 'error');
+            }
+        } catch (e: any) {
+            showNotification(e.message || 'فشلت إضافة الطبيب', 'error');
+            console.error("Failed to add doctor:", e);
+        }
+    };
+
     const updateUser = async (userId: number, userData: Partial<Omit<User, 'user_id'>>) => {
         try {
             const dataToSend = {
@@ -477,9 +476,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     
     const value = {
         user, login, logout, currentView, setView,
-        patients, visits, diagnoses, users, clinics, revenues,
+        patients, visits, diagnoses, users, clinics, revenues, doctors,
         addPatient, addVisit, addDiagnosis, addManualRevenue, updateVisitStatus,
-        addUser, updateUser,
+        addUser, updateUser, addDoctor,
         isAdding, isAddingVisit,
         loading, isSyncing, error,
         notification, hideNotification, showNotification

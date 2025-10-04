@@ -47,19 +47,24 @@ export interface Diagnosis {
 
 export interface User {
   user_id: number;
+  name: string;
   username: string;
   password?: string; // Should not be exposed in most contexts
   role: Role;
-  clinic?: number; // clinic_id, for doctors
+  clinic_id?: number;
+  doctor_id?: number;
+  doctor_name?: string;
 }
 
 export interface Clinic {
   clinic_id: number;
   clinic_name: string;
-  doctor_assigned: string;
+  doctor_id: number;
+  doctor_name: string;
   max_patients_per_day: number;
   price_first_visit: number;
   price_followup: number;
+  shift: 'صباحي' | 'مسائي';
   notes: string;
 }
 
@@ -75,4 +80,15 @@ export interface Revenue {
   notes: string;
 }
 
-export type View = 'dashboard' | 'patients' | 'visits' | 'diagnosis' | 'users' | 'clinics' | 'reports' | 'queue' | 'manual-revenue' | 'revenues';
+export interface Doctor {
+  doctor_id: number;
+  doctor_name: string;
+  specialty: string;
+  clinic_id: number;
+  phone: string;
+  email: string;
+  shift: 'صباحي' | 'مسائي';
+  status: 'نشط' | 'غير نشط';
+}
+
+export type View = 'dashboard' | 'patients' | 'visits' | 'diagnosis' | 'users' | 'clinics' | 'reports' | 'queue' | 'manual-revenue' | 'revenues' | 'doctors';

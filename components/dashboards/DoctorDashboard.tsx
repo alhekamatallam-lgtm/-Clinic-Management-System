@@ -26,12 +26,12 @@ const DoctorDashboard: React.FC = () => {
         notes: ''
     });
 
-    if (!user || user.role !== 'doctor' || !user.clinic) {
+    if (!user || user.role !== 'doctor' || !user.clinic_id) {
         return <div> وصول غير مصرح به </div>;
     }
 
     const today = getLocalYYYYMMDD(new Date());
-    const doctorClinicId = user.clinic;
+    const doctorClinicId = user.clinic_id;
 
     const myVisitsToday = visits.filter(v => v.clinic_id === doctorClinicId && v.visit_date === today)
         .sort((a,b) => a.queue_number - b.queue_number);
@@ -127,6 +127,7 @@ const DoctorDashboard: React.FC = () => {
                                 <tr className="bg-teal-50">
                                     <td colSpan={4} className="p-2 text-center font-bold text-teal-800">قائمة الانتظار الحالية</td>
                                 </tr>
+                                {/* FIX: Swapped `visit` and `index` to match the correct `map` function signature. */}
                                 {waitingVisits.map((visit, index) => (
                                     <VisitRow key={visit.visit_id} visit={visit} queuePosition={index + 1} isWaiting={true} />
                                 ))}

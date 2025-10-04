@@ -1,7 +1,7 @@
 import React from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { Role, View } from '../../types';
-import { ChartBarIcon, UserGroupIcon, ClipboardDocumentListIcon, UsersIcon, BuildingOffice2Icon, DocumentChartBarIcon, PresentationChartLineIcon, BeakerIcon, ClockIcon, DocumentPlusIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import { ChartBarIcon, UserGroupIcon, ClipboardDocumentListIcon, UsersIcon, BuildingOffice2Icon, DocumentChartBarIcon, PresentationChartLineIcon, BeakerIcon, ClockIcon, DocumentPlusIcon, CurrencyDollarIcon, HeartIcon } from '@heroicons/react/24/outline';
 
 const Sidebar: React.FC = () => {
     const { user, currentView, setView } = useApp();
@@ -17,6 +17,7 @@ const Sidebar: React.FC = () => {
         { view: 'diagnosis', label: 'التشخيص', icon: BeakerIcon, roles: [Role.Doctor, Role.Manager] },
         { view: 'users', label: 'المستخدمين', icon: UsersIcon, roles: [Role.Manager] },
         { view: 'clinics', label: 'العيادات', icon: BuildingOffice2Icon, roles: [Role.Manager] },
+        { view: 'doctors', label: 'الأطباء', icon: HeartIcon, roles: [Role.Manager] },
         { view: 'reports', label: 'التقارير', icon: DocumentChartBarIcon, roles: [Role.Doctor, Role.Manager] },
         // { view: 'manual-revenue', label: 'إيراد يدوي', icon: DocumentPlusIcon, roles: [Role.Manager, Role.Reception] },
     ];

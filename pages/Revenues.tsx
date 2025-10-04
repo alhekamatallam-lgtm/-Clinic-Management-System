@@ -43,7 +43,7 @@ const Revenues: React.FC = () => {
 
     const filteredPatients = formData.patient_name
         ? patients.filter(p => p.name.toLowerCase().includes(formData.patient_name.toLowerCase()))
-        : [];
+        : patients;
 
     const getClinicName = (id: number) => clinics.find(c => c.clinic_id === id)?.clinic_name || 'N/A';
 
@@ -195,7 +195,7 @@ const Revenues: React.FC = () => {
                                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
                                     required
                                 />
-                                {isPatientDropdownOpen && formData.patient_name && filteredPatients.length > 0 && (
+                                {isPatientDropdownOpen && filteredPatients.length > 0 && (
                                     <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
                                         {filteredPatients.map(patient => (
                                             <li

@@ -20,7 +20,7 @@ const Header: React.FC = () => {
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-white border-b-2 border-gray-200 shadow-sm">
         <div className="flex items-center">
-            <h1 className="text-xl font-semibold text-gray-700">مرحباً, {user?.username}</h1>
+            <h1 className="text-xl font-semibold text-gray-700">مرحباً, {user?.name || user?.username}</h1>
             {isSyncing && (
                 <div className="flex items-center text-sm text-gray-500 mr-4" title="جاري مزامنة البيانات...">
                     <ArrowPathIcon className="h-4 w-4 animate-spin text-teal-500" />
@@ -30,7 +30,7 @@ const Header: React.FC = () => {
         </div>
       <div className="flex items-center">
         <div className="text-right ml-4">
-          <p className="text-sm font-medium text-gray-800">{user?.username}</p>
+          <p className="text-sm font-medium text-gray-800">{user?.name || user?.username}</p>
           <p className="text-xs text-gray-500">{getRoleName(user!.role)}</p>
         </div>
         <UserCircleIcon className="h-10 w-10 text-gray-500" />

@@ -30,8 +30,8 @@ const Visits: React.FC = () => {
         let tempVisits = [...visits];
 
         // 1. Role-based filtering
-        if (user?.role === Role.Doctor && user.clinic) {
-            tempVisits = tempVisits.filter(visit => visit.clinic_id === user.clinic);
+        if (user?.role === Role.Doctor && user.clinic_id) {
+            tempVisits = tempVisits.filter(visit => visit.clinic_id === user.clinic_id);
         }
         
         // 2. Clinic filter

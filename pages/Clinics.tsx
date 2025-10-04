@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useApp } from '../contexts/AppContext';
 
@@ -14,9 +13,11 @@ const Clinics: React.FC = () => {
                         <tr>
                             <th className="p-3 text-sm font-semibold tracking-wide">#</th>
                             <th className="p-3 text-sm font-semibold tracking-wide">اسم العيادة</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">الطبيب المسؤول</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide">اسم الطبيب</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide">الدوام</th>
                             <th className="p-3 text-sm font-semibold tracking-wide">سعر الكشف</th>
                             <th className="p-3 text-sm font-semibold tracking-wide">سعر المتابعة</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide">ملاحظات</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -24,9 +25,11 @@ const Clinics: React.FC = () => {
                             <tr key={clinic.clinic_id} className="hover:bg-gray-50">
                                 <td className="p-3 text-sm text-gray-700">{clinic.clinic_id}</td>
                                 <td className="p-3 text-sm text-gray-700">{clinic.clinic_name}</td>
-                                <td className="p-3 text-sm text-gray-700">{clinic.doctor_assigned}</td>
+                                <td className="p-3 text-sm text-gray-700">{clinic.doctor_name}</td>
+                                <td className="p-3 text-sm text-gray-700">{clinic.shift}</td>
                                 <td className="p-3 text-sm text-gray-700">{clinic.price_first_visit} ريال</td>
                                 <td className="p-3 text-sm text-gray-700">{clinic.price_followup} ريال</td>
+                                <td className="p-3 text-sm text-gray-700">{clinic.notes}</td>
                             </tr>
                         ))}
                     </tbody>

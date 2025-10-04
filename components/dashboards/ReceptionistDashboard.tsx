@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import StatCard from '../ui/StatCard';
 import { UserGroupIcon, ClockIcon, CalendarDaysIcon, PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/solid';
-import { VisitStatus, VisitType, Patient } from '../../types';
+import { VisitStatus, VisitType, Patient, Visit } from '../../types';
 import Modal from '../ui/Modal';
 
 // Helper to get 'YYYY-MM-DD' from a Date object, respecting local timezone.
@@ -14,12 +14,15 @@ const getLocalYYYYMMDD = (date: Date): string => {
 };
 
 const ReceptionistDashboard: React.FC = () => {
-    const { patients, visits, clinics, addPatient, addVisit, isAddingVisit } = useApp();
+    const { patients, visits, clinics, addPatient, addVisit, isAddingVisit, addManualRevenue, isAdding, showNotification } = useApp();
     const [isAddPatientModalOpen, setAddPatientModalOpen] = useState(false);
     const [isAddVisitModalOpen, setAddVisitModalOpen] = useState(false);
     
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+    
+    // Use a ref to track the newly created visit within the modal's lifecycle without causing re-renders.
+    const newlyCreatedVisitRef = useRef<Visit | null>(null);
 
     const [newPatient, setNewPatient] = useState<Omit<Patient, 'patient_id'>>({ name: '', dob: '', gender: 'ذكر', phone: '', address: '' });
     
@@ -68,21 +71,54 @@ const ReceptionistDashboard: React.FC = () => {
     const handleCloseVisitModal = () => {
         setAddVisitModalOpen(false);
         setSelectedPatient(null);
+        newlyCreatedVisitRef.current = null; // Reset the ref on close
     };
 
-    const handleAddVisit = async (e: React.FormEvent) => {
+    const handleAddVisit = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         if (!selectedPatient) return;
-        await addVisit({
+
+        // Prevent creating a duplicate visit within the same modal session
+        if (newlyCreatedVisitRef.current) {
+            // FIX: Changed notification type 'info' to 'error' as 'info' is not a valid type.
+            showNotification('تمت إضافة الزيارة بالفعل.', 'error');
+            return;
+        }
+
+        const createdVisit = await addVisit({
             patient_id: selectedPatient.patient_id,
             clinic_id: visitFormData.clinic_id,
             visit_type: visitFormData.visit_type,
-            notes: visitFormData.notes,
-            amount: visitAmountAfterDiscount,
-            revenue_date: visitFormData.revenue_date,
         });
-        handleCloseVisitModal();
-    }
+
+        if (createdVisit) {
+            newlyCreatedVisitRef.current = createdVisit; // Store the created visit in the ref
+            showNotification('تمت إضافة الزيارة. يمكنك إغلاق النافذة.', 'success');
+        }
+    };
+
+    const handleAddRevenue = async (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        if (!selectedPatient) return;
+        
+        // This action is now completely independent of creating a visit.
+        // It will add a revenue record not linked to a specific visit (visit_id = 0).
+        const success = await addManualRevenue({
+            visit_id: 0,
+            patient_id: selectedPatient.patient_id,
+            patient_name: selectedPatient.name,
+            clinic_id: visitFormData.clinic_id,
+            amount: visitAmountAfterDiscount,
+            date: visitFormData.revenue_date,
+            type: visitFormData.visit_type, // The form collects visit type, which corresponds to revenue type
+            notes: visitFormData.notes || '',
+        });
+
+        if (success) {
+            showNotification('تم تسجيل الإيراد بنجاح', 'success');
+            handleCloseVisitModal();
+        }
+    };
     
     const openAddVisitModal = (patient: Patient) => {
         setSelectedPatient(patient);
@@ -96,6 +132,7 @@ const ReceptionistDashboard: React.FC = () => {
             base_amount: initialPrice,
             revenue_date: today,
         });
+        newlyCreatedVisitRef.current = null; // Reset ref when opening modal
         setAddVisitModalOpen(true);
     };
     
@@ -177,7 +214,7 @@ const ReceptionistDashboard: React.FC = () => {
             </Modal>
             
             <Modal title={`تسجيل كشف للمريض: ${selectedPatient?.name}`} isOpen={isAddVisitModalOpen} onClose={handleCloseVisitModal}>
-                <form onSubmit={handleAddVisit} className="space-y-4">
+                <form className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
                              <label className="block text-sm font-medium text-gray-700 mb-1">اسم المريض</label>
@@ -230,13 +267,22 @@ const ReceptionistDashboard: React.FC = () => {
                             <textarea name="notes" value={visitFormData.notes} onChange={handleVisitFormChange} rows={3} className="w-full p-2 border border-gray-300 rounded-lg" placeholder="أي تفاصيل إضافية..." />
                         </div>
                     </div>
-                    <div className="pt-4">
+                    <div className="pt-4 flex flex-col md:flex-row gap-2">
                         <button 
-                            type="submit" 
-                            className="w-full bg-teal-500 text-white p-3 rounded-lg hover:bg-teal-600 disabled:bg-gray-400 transition-colors" 
-                            disabled={isAddingVisit}
+                            type="button" 
+                            onClick={handleAddVisit}
+                            className="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors" 
+                            disabled={isAddingVisit || isAdding}
                         >
-                            {isAddingVisit ? 'جاري الإضافة...' : 'تأكيد إضافة الزيارة والإيراد'}
+                            {isAddingVisit ? 'جاري إضافة الزيارة...' : 'تأكيد الزيارة'}
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={handleAddRevenue}
+                            className="w-full bg-teal-500 text-white p-3 rounded-lg hover:bg-teal-600 disabled:bg-gray-400 transition-colors" 
+                            disabled={isAdding || isAddingVisit}
+                        >
+                            {(isAdding || isAddingVisit) ? 'جاري الحفظ...' : 'إضافة الإيراد'}
                         </button>
                     </div>
                 </form>
