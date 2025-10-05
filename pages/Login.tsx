@@ -1,17 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { UserGroupIcon, LockClosedIcon } from '@heroicons/react/24/solid';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const { login } = useApp();
+
+  useEffect(() => {
+    const savedUsername = localStorage.getItem('rememberedUsername');
+    if (savedUsername) {
+        setUsername(savedUsername);
+        setRememberMe(true);
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = login(username, password);
+    const success = login(username, password, rememberMe);
     if (!success) {
       setError('اسم المستخدم أو كلمة المرور غير صحيحة.');
     }
@@ -73,6 +82,20 @@ const Login: React.FC = () => {
             </div>
           </div>
           
+           <div className="flex items-center">
+                <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="mr-2 block text-sm text-gray-900 dark:text-gray-300">
+                    تذكرني
+                </label>
+            </div>
+
           {error && (
             <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-md text-sm">
                 {error}

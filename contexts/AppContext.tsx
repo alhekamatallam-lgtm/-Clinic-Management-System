@@ -15,6 +15,25 @@ const COLUMN_MAPPING = {
     Clinics: ['clinic_id', 'clinic_name', 'doctor_id', 'doctor_name', 'max_patients_per_day', 'price_first_visit', 'price_followup', 'shift', 'notes'],
 };
 
+// Helper function to format dates consistently to 'YYYY-MM-DD' in the local timezone.
+const formatDateToLocalYYYYMMDD = (dateInput: string | Date | undefined | null): string => {
+    if (!dateInput) return '';
+    try {
+        const date = new Date(dateInput);
+        // Check for invalid date
+        if (isNaN(date.getTime())) return '';
+        
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
+    } catch (e) {
+        // Return empty string if date parsing fails
+        return '';
+    }
+};
+
 // Helper function to convert the array returned by the POST request into a structured object.
 // This allows for immediate UI updates with server-generated data (like IDs).
 const mapRowToObject = <T,>(row: any[], sheetName: keyof typeof COLUMN_MAPPING): T => {
@@ -39,7 +58,7 @@ const mapRowToObject = <T,>(row: any[], sheetName: keyof typeof COLUMN_MAPPING):
 
 interface AppContextType {
     user: User | null;
-    login: (username: string, password?: string) => boolean;
+    login: (username: string, password?: string, rememberMe?: boolean) => boolean;
     logout: () => void;
     currentView: View;
     setView: (view: View) => void;
@@ -51,7 +70,7 @@ interface AppContextType {
     revenues: Revenue[];
     doctors: Doctor[];
     addPatient: (patient: Omit<Patient, 'patient_id'>) => Promise<void>;
-    addVisit: (visit: Omit<Visit, 'visit_id' | 'visit_date' | 'queue_number' | 'status'>) => Promise<Visit | null>;
+    addVisit: (visit: Omit<Visit, 'visit_id' | 'visit_date' | 'queue_number' | 'status'>) => Promise<Visit>;
     addDiagnosis: (diagnosis: Omit<Diagnosis, 'diagnosis_id'>) => Promise<void>;
     addManualRevenue: (revenue: Omit<Revenue, 'revenue_id'>) => Promise<boolean>;
     addDoctor: (doctor: Omit<Doctor, 'doctor_id'>) => Promise<void>;
@@ -138,22 +157,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             }
             const result = await response.json();
             if (result.success) {
-                const formatDateToLocalYYYYMMDD = (dateInput: string | Date | undefined | null): string => {
-                    if (!dateInput) return '';
-                    try {
-                        const date = new Date(dateInput);
-                        if (isNaN(date.getTime())) return '';
-                        
-                        const year = date.getFullYear();
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const day = String(date.getDate()).padStart(2, '0');
-                        
-                        return `${year}-${month}-${day}`;
-                    } catch (e) {
-                        return '';
-                    }
-                };
-
                 const processedDiagnoses = (result.data.Diagnosis || []).map((d: any) => ({
                     ...d,
                     labs_needed: typeof d.labs_needed === 'string' ? d.labs_needed.split(',').filter(l => l && l.trim() !== '') : []
@@ -226,12 +229,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
 
-    const login = (username: string, password?: string): boolean => {
+    const login = (username: string, password?: string, rememberMe: boolean = false): boolean => {
         const foundUser = users.find(u => u.username === username && u.password === password);
         if (foundUser) {
             const { password: _, ...userToStore } = foundUser; // Exclude password from stored object
             setUser(userToStore);
             localStorage.setItem('clinicUser', JSON.stringify(userToStore));
+            
+            if (rememberMe) {
+                localStorage.setItem('rememberedUsername', username);
+            } else {
+                localStorage.removeItem('rememberedUsername');
+            }
+
             setView('dashboard');
             showNotification('تم تسجيل الدخول بنجاح', 'success');
             return true;
@@ -316,34 +326,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return success;
     };
 
-    const addVisit = async (visitData: Omit<Visit, 'visit_id' | 'visit_date' | 'queue_number' | 'status'>): Promise<Visit | null> => {
-        if (isAddingVisit) return null;
+    const addVisit = async (visitData: Omit<Visit, 'visit_id' | 'visit_date' | 'queue_number' | 'status'>): Promise<Visit> => {
+        if (isAddingVisit) throw new Error("لا يمكن إضافة زيارة أخرى أثناء معالجة الطلب الحالي.");
         setIsAddingVisit(true);
     
         try {
             // Step 1: Fetch fresh visit data to ensure queue number is correct.
-            const syncResponse = await fetch(SCRIPT_URL, { cache: 'no-cache' });
+            let syncResponse = await fetch(SCRIPT_URL, { cache: 'no-cache' });
             if (!syncResponse.ok) throw new Error(`فشل مزامنة البيانات قبل الإضافة (الكود: ${syncResponse.status})`);
             
-            const syncResult = await syncResponse.json();
+            let syncResult = await syncResponse.json();
             if (!syncResult.success) throw new Error(syncResult.message || "فشلت مزامنة البيانات.");
             
-            const currentVisits: Visit[] = syncResult.data.Visits || [];
+            // Process dates from server to ensure they are in local YYYY-MM-DD format for comparison
+            const currentVisits: Visit[] = (syncResult.data.Visits || []).map((v: any) => ({
+                ...v,
+                visit_date: formatDateToLocalYYYYMMDD(v.visit_date)
+            }));
             
             // Step 2: Calculate the next queue number and get the correct LOCAL date.
-            const getLocalDateString = (dateInput: string | Date): string => {
-                const date = new Date(dateInput);
-                 if (isNaN(date.getTime())) return '';
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            };
-            const today = getLocalDateString(new Date());
+            const today = formatDateToLocalYYYYMMDD(new Date());
 
             const visitsForClinicToday = currentVisits.filter(v => 
-                v.clinic_id === visitData.clinic_id && 
-                getLocalDateString(v.visit_date) === today
+                v.clinic_id === visitData.clinic_id && v.visit_date === today
             );
             const newQueueNumber = visitsForClinicToday.length + 1;
     
@@ -358,19 +363,52 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             };
             const visitResult = await postData('Visits', visitToSend);
             
-            if (visitResult.success && visitResult.data) {
+            if (!visitResult.success) {
+                 throw new Error(visitResult.message || 'فشلت إضافة الزيارة');
+            }
+            
+            // POST was successful. The server might not have returned the data, so we try to find the visit.
+            
+            // First, check if the data was returned (the ideal case).
+            if (visitResult.data) {
                 const newVisit = mapRowToObject<Visit>(visitResult.data, 'Visits');
-                showNotification('تمت إضافة الزيارة بنجاح', 'success');
-                await fetchData(true);
+                await fetchData(true); // Update global state
                 return newVisit;
+            }
+
+            // If not returned, re-fetch all data and search for the visit we just created.
+            // Using a small delay to handle potential server-side replication lag.
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            syncResponse = await fetch(SCRIPT_URL, { cache: 'no-cache' });
+            if (!syncResponse.ok) throw new Error(`فشل استرداد الزيارة بعد إنشائها (الكود: ${syncResponse.status})`);
+            
+            syncResult = await syncResponse.json();
+            if (!syncResult.success) throw new Error(syncResult.message || "فشل استرداد الزيارة بعد إنشائها.");
+            
+            const latestVisits: Visit[] = (syncResult.data.Visits || []).map((v: any) => ({
+                ...v,
+                visit_date: formatDateToLocalYYYYMMDD(v.visit_date),
+            }));
+
+            const createdVisit = latestVisits.find(v => 
+                v.patient_id === visitToSend.patient_id &&
+                v.clinic_id === visitToSend.clinic_id &&
+                v.visit_date === visitToSend.visit_date &&
+                v.queue_number === visitToSend.queue_number &&
+                v.visit_type === visitToSend.visit_type
+            );
+            
+            if (createdVisit) {
+                await fetchData(true); // Sync global state with what we just fetched.
+                return createdVisit;
             } else {
-                 showNotification(visitResult.message || 'فشلت إضافة الزيارة', 'error');
-                 return null;
+                // Final fallback. The visit was likely added but we can't confirm.
+                throw new Error('تمت إضافة الزيارة، ولكن تعذر تأكيدها فوراً. يرجى التحقق من قائمة الزيارات.');
             }
         } catch (e: any) {
-            showNotification(e.message || 'فشلت إضافة الزيارة', 'error');
             console.error("Failed to add visit:", e);
-            return null;
+            throw e; // Re-throw the caught error
         } finally {
             setIsAddingVisit(false);
         }
