@@ -1,7 +1,7 @@
 import React from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { Role, View } from '../../types';
-import { ChartBarIcon, UserGroupIcon, ClipboardDocumentListIcon, UsersIcon, BuildingOffice2Icon, DocumentChartBarIcon, PresentationChartLineIcon, BeakerIcon, ClockIcon, DocumentPlusIcon, CurrencyDollarIcon, HeartIcon } from '@heroicons/react/24/outline';
+import { ChartBarIcon, UserGroupIcon, ClipboardDocumentListIcon, UsersIcon, BuildingOffice2Icon, DocumentChartBarIcon, PresentationChartLineIcon, BeakerIcon, QueueListIcon, DocumentPlusIcon, CurrencyDollarIcon, HeartIcon } from '@heroicons/react/24/outline';
 
 const Sidebar: React.FC = () => {
     const { user, currentView, setView } = useApp();
@@ -10,7 +10,7 @@ const Sidebar: React.FC = () => {
 
     const navItems = [
         { view: 'dashboard', label: 'لوحة التحكم', icon: PresentationChartLineIcon, roles: [Role.Reception, Role.Doctor, Role.Manager] },
-        { view: 'queue', label: 'شاشة الانتظار', icon: ClockIcon, roles: [Role.Reception, Role.Doctor, Role.Manager] },
+        { view: 'queue', label: 'شاشة الانتظار', icon: QueueListIcon, roles: [Role.Reception, Role.Doctor, Role.Manager], color: 'text-amber-400' },
         { view: 'patients', label: 'المرضى', icon: UserGroupIcon, roles: [Role.Reception, Role.Manager] },
         { view: 'visits', label: 'الزيارات', icon: ClipboardDocumentListIcon, roles: [Role.Reception, Role.Doctor, Role.Manager] },
         { view: 'revenues', label: 'الإيرادات', icon: CurrencyDollarIcon, roles: [Role.Reception, Role.Manager] },
@@ -27,13 +27,14 @@ const Sidebar: React.FC = () => {
     const NavLink = ({ item }: { item: typeof filteredNavItems[0] }) => {
         const Icon = item.icon;
         const isActive = currentView === item.view;
+        const colorClass = (item as { color?: string }).color || '';
         return (
             <a
                 href="#"
                 onClick={(e) => { e.preventDefault(); setView(item.view as View); }}
                 className={`flex items-center px-4 py-3 text-gray-100 hover:bg-teal-700 rounded-lg transition-colors duration-200 ${isActive ? 'bg-teal-700 font-bold' : ''}`}
             >
-                <Icon className="h-6 w-6 ml-3" />
+                <Icon className={`h-6 w-6 ml-3 ${colorClass}`} />
                 <span>{item.label}</span>
             </a>
         );

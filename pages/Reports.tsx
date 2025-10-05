@@ -1,24 +1,49 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { FunnelIcon, XMarkIcon, PrinterIcon } from '@heroicons/react/24/solid';
+import { VisitType } from '../types';
 
 const Reports: React.FC = () => {
-    const { revenues, clinics } = useApp();
+    const { revenues, clinics, doctors } = useApp();
     
     // State for filters
+    const [patientNameFilter, setPatientNameFilter] = useState<string>('');
     const [clinicFilter, setClinicFilter] = useState<string>('all');
+    const [doctorFilter, setDoctorFilter] = useState<string>('all');
+    const [visitTypeFilter, setVisitTypeFilter] = useState<string>('all');
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
     
     const filteredRevenues = useMemo(() => {
         let tempRevenues = [...revenues];
 
-        // 1. Clinic filter
+        // 1. Patient Name filter
+        if (patientNameFilter) {
+            tempRevenues = tempRevenues.filter(r => 
+                r.patient_name.toLowerCase().includes(patientNameFilter.toLowerCase())
+            );
+        }
+
+        // 2. Clinic filter
         if (clinicFilter !== 'all') {
             tempRevenues = tempRevenues.filter(r => r.clinic_id === parseInt(clinicFilter));
         }
 
-        // 2. Date range filter
+        // 3. Doctor filter
+        if (doctorFilter !== 'all') {
+            const selectedDoctorId = parseInt(doctorFilter);
+            tempRevenues = tempRevenues.filter(r => {
+                const clinic = clinics.find(c => c.clinic_id === r.clinic_id);
+                return clinic && clinic.doctor_id === selectedDoctorId;
+            });
+        }
+        
+        // 4. Visit Type filter
+        if (visitTypeFilter !== 'all') {
+            tempRevenues = tempRevenues.filter(r => r.type === visitTypeFilter);
+        }
+
+        // 5. Date range filter
         if (startDate) {
             tempRevenues = tempRevenues.filter(r => r.date >= startDate);
         }
@@ -29,14 +54,17 @@ const Reports: React.FC = () => {
         // Sort by most recent date
         return tempRevenues.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    }, [revenues, clinicFilter, startDate, endDate]);
+    }, [revenues, clinics, patientNameFilter, clinicFilter, doctorFilter, visitTypeFilter, startDate, endDate]);
 
     const totalFilteredAmount = useMemo(() => {
         return filteredRevenues.reduce((sum, r) => sum + r.amount, 0);
     }, [filteredRevenues]);
 
     const resetFilters = () => {
+        setPatientNameFilter('');
         setClinicFilter('all');
+        setDoctorFilter('all');
+        setVisitTypeFilter('all');
         setStartDate('');
         setEndDate('');
     };
@@ -46,6 +74,7 @@ const Reports: React.FC = () => {
     };
 
     const getClinicName = (id: number) => clinics.find(c => c.clinic_id === id)?.clinic_name || 'N/A';
+    const getDoctorName = (id: number) => clinics.find(c => c.clinic_id === id)?.doctor_name || 'N/A';
 
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md printable-area">
@@ -67,6 +96,17 @@ const Reports: React.FC = () => {
                     <FunnelIcon className="h-5 w-5 ml-2 text-gray-400 dark:text-gray-500" />
                     <span>تصفية حسب:</span>
                 </div>
+                <div>
+                    <label htmlFor="patient-name-filter" className="sr-only">اسم المريض</label>
+                    <input
+                        type="text"
+                        id="patient-name-filter"
+                        placeholder="ابحث باسم المريض..."
+                        className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        value={patientNameFilter}
+                        onChange={e => setPatientNameFilter(e.target.value)}
+                    />
+                </div>
                  <div>
                     <label htmlFor="clinic-filter" className="sr-only">العيادة</label>
                     <select
@@ -79,6 +119,33 @@ const Reports: React.FC = () => {
                         {clinics.map(clinic => (
                             <option key={clinic.clinic_id} value={clinic.clinic_id}>{clinic.clinic_name}</option>
                         ))}
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="doctor-filter" className="sr-only">الطبيب</label>
+                    <select
+                        id="doctor-filter"
+                        className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        value={doctorFilter}
+                        onChange={e => setDoctorFilter(e.target.value)}
+                    >
+                        <option value="all">كل الأطباء</option>
+                        {doctors.map(doctor => (
+                            <option key={doctor.doctor_id} value={doctor.doctor_id}>{doctor.doctor_name}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="visit-type-filter" className="sr-only">نوع الزيارة</label>
+                    <select
+                        id="visit-type-filter"
+                        className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        value={visitTypeFilter}
+                        onChange={e => setVisitTypeFilter(e.target.value)}
+                    >
+                        <option value="all">كل الأنواع</option>
+                        <option value={VisitType.FirstVisit}>{VisitType.FirstVisit}</option>
+                        <option value={VisitType.FollowUp}>{VisitType.FollowUp}</option>
                     </select>
                 </div>
                 <div>
@@ -118,6 +185,7 @@ const Reports: React.FC = () => {
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">#</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">اسم المريض</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">العيادة</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">اسم الطبيب</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">المبلغ</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">التاريخ</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">نوع الزيارة</th>
@@ -129,6 +197,7 @@ const Reports: React.FC = () => {
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.revenue_id}</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.patient_name}</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{getClinicName(revenue.clinic_id)}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{getDoctorName(revenue.clinic_id)}</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300 font-bold">{revenue.amount} ريال</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.date}</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.type}</td>
@@ -137,7 +206,7 @@ const Reports: React.FC = () => {
                     </tbody>
                     <tfoot className="bg-gray-100 dark:bg-gray-700">
                         <tr>
-                            <td colSpan={3} className="p-3 text-sm font-bold text-gray-800 dark:text-gray-200 text-left">الإجمالي</td>
+                            <td colSpan={4} className="p-3 text-sm font-bold text-gray-800 dark:text-gray-200 text-left">الإجمالي</td>
                             <td colSpan={3} className="p-3 text-sm font-bold text-teal-700 dark:text-teal-400 text-right">{totalFilteredAmount.toFixed(2)} ريال</td>
                         </tr>
                     </tfoot>

@@ -45,21 +45,21 @@ const Queue: React.FC = () => {
 
     return (
         <div>
-            <h1 className="text-4xl font-bold text-center text-teal-800 dark:text-teal-300 mb-8">شاشة الانتظار</h1>
+            <h1 className="text-4xl font-bold text-center text-amber-800 dark:text-amber-300 mb-8">شاشة الانتظار</h1>
             {Object.keys(visitsByClinic).length === 0 ? (
-                <div className="text-center text-gray-500 dark:text-gray-400 text-xl bg-white dark:bg-gray-800 p-10 rounded-lg shadow-md">
+                <div className="text-center text-gray-500 dark:text-gray-400 text-xl bg-amber-50 dark:bg-gray-800 p-10 rounded-lg shadow-md">
                     <p>لا يوجد مرضى في قائمة الانتظار حالياً.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {Object.entries(visitsByClinic).map(([clinicName, clinicVisits]) => (
                         <div key={clinicName} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
-                            <h2 className="text-2xl font-bold text-teal-700 dark:text-teal-400 mb-4 border-b-2 pb-2 border-teal-200 dark:border-teal-700">{clinicName}</h2>
+                            <h2 className="text-2xl font-bold text-amber-700 dark:text-amber-400 mb-4 border-b-2 pb-2 border-amber-200 dark:border-amber-700">{clinicName}</h2>
                             <ul className="space-y-4">
                                 {clinicVisits.map((visit) => (
-                                    <li key={visit.visit_id} className={`p-4 rounded-lg flex items-center justify-between ${visit.status === VisitStatus.InProgress ? 'bg-blue-100 dark:bg-blue-900/50 border-l-4 border-blue-500 dark:border-blue-400' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
+                                    <li key={visit.visit_id} className={`p-4 rounded-lg flex items-center justify-between ${visit.status === VisitStatus.InProgress ? 'bg-blue-100 dark:bg-blue-900/50 border-l-4 border-blue-500 dark:border-blue-400' : 'bg-amber-100 dark:bg-amber-900/50 border-l-4 border-amber-500 dark:border-amber-400'}`}>
                                         <div>
-                                            <p className="text-2xl font-bold text-teal-800 dark:text-teal-300">{visit.queue_number}</p>
+                                            <p className="text-2xl font-bold text-amber-800 dark:text-amber-300">{visit.queue_number}</p>
                                             <p className="text-lg text-gray-600 dark:text-gray-300">{getPatientName(visit.patient_id)}</p>
                                         </div>
                                         <span className={`px-3 py-1 text-sm font-semibold rounded-full ${visit.status === VisitStatus.InProgress ? 'bg-blue-200 text-blue-800 dark:bg-blue-900 dark:text-blue-300' : 'bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'}`}>

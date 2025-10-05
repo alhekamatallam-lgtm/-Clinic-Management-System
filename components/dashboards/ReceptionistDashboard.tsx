@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import StatCard from '../ui/StatCard';
-import { UserGroupIcon, ClockIcon, CalendarDaysIcon, PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/solid';
+import { UserGroupIcon, ClockIcon, CalendarDaysIcon, PlusIcon, MagnifyingGlassIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/solid';
 import { VisitStatus, VisitType, Patient, Visit } from '../../types';
 import Modal from '../ui/Modal';
 
@@ -14,9 +14,10 @@ const getLocalYYYYMMDD = (date: Date): string => {
 };
 
 const ReceptionistDashboard: React.FC = () => {
-    const { patients, visits, clinics, addPatient, addVisit, isAddingVisit, addManualRevenue, isAdding, showNotification } = useApp();
+    const { patients, visits, clinics, diagnoses, addPatient, addVisit, isAddingVisit, addManualRevenue, isAdding, showNotification } = useApp();
     const [isAddPatientModalOpen, setAddPatientModalOpen] = useState(false);
     const [isAddVisitModalOpen, setAddVisitModalOpen] = useState(false);
+    const [isPastDiagnosesModalOpen, setPastDiagnosesModalOpen] = useState(false);
     
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -61,6 +62,23 @@ const ReceptionistDashboard: React.FC = () => {
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.phone.includes(searchTerm)
     );
+
+    const pastDiagnosesForSelectedPatient = useMemo(() => {
+        if (!selectedPatient) return [];
+
+        const patientVisits = visits.filter(v => v.patient_id === selectedPatient.patient_id);
+        const patientVisitIds = patientVisits.map(v => v.visit_id);
+
+        const patientDiagnoses = diagnoses.filter(d => patientVisitIds.includes(d.visit_id));
+
+        return patientDiagnoses.map(diag => {
+            const visit = patientVisits.find(v => v.visit_id === diag.visit_id);
+            return {
+                ...diag,
+                visit_date: visit?.visit_date || 'N/A'
+            };
+        }).sort((a, b) => new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime());
+    }, [selectedPatient, visits, diagnoses]);
 
     const handleAddPatient = (e: React.FormEvent) => {
         e.preventDefault();
@@ -249,7 +267,17 @@ const ReceptionistDashboard: React.FC = () => {
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">اسم المريض</label>
-                                <input type="text" value={selectedPatient?.name || ''} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-600 dark:border-gray-500" readOnly />
+                                <div className="flex items-center gap-2">
+                                    <input type="text" value={selectedPatient?.name || ''} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-600 dark:border-gray-500" readOnly />
+                                    <button
+                                        type="button"
+                                        onClick={() => setPastDiagnosesModalOpen(true)}
+                                        className="p-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 flex-shrink-0"
+                                        title="عرض التشخيصات السابقة"
+                                    >
+                                        <ClipboardDocumentListIcon className="h-5 w-5" />
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">العيادة</label>
@@ -285,9 +313,19 @@ const ReceptionistDashboard: React.FC = () => {
                 {modalMode === 'revenue' && (
                     <form onSubmit={handleAddRevenue} className="space-y-4">
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="md:col-span-2">
+                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">اسم المريض</label>
-                                <input type="text" value={selectedPatient?.name || ''} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-600 dark:border-gray-500" readOnly />
+                                <div className="flex items-center gap-2">
+                                    <input type="text" value={selectedPatient?.name || ''} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-600 dark:border-gray-500" readOnly />
+                                    <button
+                                        type="button"
+                                        onClick={() => setPastDiagnosesModalOpen(true)}
+                                        className="p-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 flex-shrink-0"
+                                        title="عرض التشخيصات السابقة"
+                                    >
+                                        <ClipboardDocumentListIcon className="h-5 w-5" />
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">العيادة</label>
@@ -334,6 +372,29 @@ const ReceptionistDashboard: React.FC = () => {
                         </div>
                     </form>
                 )}
+            </Modal>
+            
+            <Modal title={`التشخيصات السابقة لـ: ${selectedPatient?.name}`} isOpen={isPastDiagnosesModalOpen} onClose={() => setPastDiagnosesModalOpen(false)}>
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto p-1">
+                    {pastDiagnosesForSelectedPatient.length > 0 ? (
+                        pastDiagnosesForSelectedPatient.map(diag => (
+                            <div key={diag.diagnosis_id} className="border dark:border-gray-700 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="font-bold text-md text-teal-700 dark:text-teal-400">تاريخ الزيارة: {diag.visit_date}</h4>
+                                    <span className="text-sm text-gray-500 dark:text-gray-400">بواسطة: {diag.doctor}</span>
+                                </div>
+                                <p className="text-sm text-gray-800 dark:text-gray-300"><span className="font-semibold">التشخيص:</span> {diag.diagnosis}</p>
+                                <p className="text-sm text-gray-800 dark:text-gray-300"><span className="font-semibold">الوصفة:</span> {diag.prescription}</p>
+                                {diag.labs_needed && diag.labs_needed.length > 0 && diag.labs_needed[0] && (
+                                    <p className="text-sm text-gray-800 dark:text-gray-300"><span className="font-semibold">المطلوب:</span> {diag.labs_needed.join(', ')}</p>
+                                )}
+                                {diag.notes && <p className="text-sm text-gray-800 dark:text-gray-300"><span className="font-semibold">ملاحظات:</span> {diag.notes}</p>}
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-center text-gray-500 dark:text-gray-400 py-4">لا توجد تشخيصات سابقة لهذا المريض.</p>
+                    )}
+                </div>
             </Modal>
         </div>
     );
