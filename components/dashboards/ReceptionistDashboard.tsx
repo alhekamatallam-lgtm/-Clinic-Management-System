@@ -152,9 +152,9 @@ const ReceptionistDashboard: React.FC = () => {
                 <StatCard title="في الانتظار" value={waitingPatients} icon={ClockIcon} color="bg-yellow-500" />
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-gray-700">بحث عن مريض / إضافة زيارة</h2>
+                    <h2 className="text-xl font-bold text-teal-800 dark:text-teal-300">بحث عن مريض / إضافة زيارة</h2>
                     <button onClick={() => setAddPatientModalOpen(true)} className="flex items-center bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors">
                         <PlusIcon className="h-5 w-5 ml-2"/>
                         إضافة مريض جديد
@@ -167,7 +167,7 @@ const ReceptionistDashboard: React.FC = () => {
                     <input
                         type="text"
                         placeholder="ابحث بالاسم أو رقم الهاتف..."
-                        className="w-full p-2 pr-10 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                        className="w-full p-2 pr-10 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -175,16 +175,16 @@ const ReceptionistDashboard: React.FC = () => {
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-right">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <th className="p-3 text-sm font-semibold tracking-wide">الاسم</th>
-                                <th className="p-3 text-sm font-semibold tracking-wide">رقم الهاتف</th>
-                                <th className="p-3 text-sm font-semibold tracking-wide">إجراء</th>
+                                <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">الاسم</th>
+                                <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">رقم الهاتف</th>
+                                <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">إجراء</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredPatients.map(patient => (
-                                <tr key={patient.patient_id} className="border-b">
+                                <tr key={patient.patient_id} className="border-b dark:border-gray-700">
                                     <td className="p-3">{patient.name}</td>
                                     <td className="p-3">{patient.phone}</td>
                                     <td className="p-3 space-x-2 space-x-reverse">
@@ -201,14 +201,14 @@ const ReceptionistDashboard: React.FC = () => {
 
             <Modal title="إضافة مريض جديد" isOpen={isAddPatientModalOpen} onClose={() => setAddPatientModalOpen(false)}>
                 <form onSubmit={handleAddPatient} className="space-y-4">
-                    <input type="text" placeholder="الاسم الكامل" value={newPatient.name} onChange={e => setNewPatient({...newPatient, name: e.target.value})} className="w-full p-2 border rounded" required />
-                    <input type="date" placeholder="تاريخ الميلاد" value={newPatient.dob} onChange={e => setNewPatient({...newPatient, dob: e.target.value})} className="w-full p-2 border rounded" required />
-                    <select value={newPatient.gender} onChange={e => setNewPatient({...newPatient, gender: e.target.value as 'ذكر' | 'أنثى'})} className="w-full p-2 border rounded">
+                    <input type="text" placeholder="الاسم الكامل" value={newPatient.name} onChange={e => setNewPatient({...newPatient, name: e.target.value})} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                    <input type="date" placeholder="تاريخ الميلاد" value={newPatient.dob} onChange={e => setNewPatient({...newPatient, dob: e.target.value})} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                    <select value={newPatient.gender} onChange={e => setNewPatient({...newPatient, gender: e.target.value as 'ذكر' | 'أنثى'})} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         <option value="ذكر">ذكر</option>
                         <option value="أنثى">أنثى</option>
                     </select>
-                    <input type="tel" placeholder="رقم الهاتف" value={newPatient.phone} onChange={e => setNewPatient({...newPatient, phone: e.target.value})} className="w-full p-2 border rounded" required />
-                    <input type="text" placeholder="العنوان" value={newPatient.address} onChange={e => setNewPatient({...newPatient, address: e.target.value})} className="w-full p-2 border rounded" />
+                    <input type="tel" placeholder="رقم الهاتف" value={newPatient.phone} onChange={e => setNewPatient({...newPatient, phone: e.target.value})} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                    <input type="text" placeholder="العنوان" value={newPatient.address} onChange={e => setNewPatient({...newPatient, address: e.target.value})} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                     <button type="submit" className="w-full bg-teal-500 text-white p-2 rounded hover:bg-teal-600">إضافة</button>
                 </form>
             </Modal>
@@ -217,54 +217,54 @@ const ReceptionistDashboard: React.FC = () => {
                 <form className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
-                             <label className="block text-sm font-medium text-gray-700 mb-1">اسم المريض</label>
-                             <input type="text" value={selectedPatient?.name || ''} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100" readOnly />
+                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">اسم المريض</label>
+                             <input type="text" value={selectedPatient?.name || ''} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-600 dark:border-gray-500" readOnly />
                         </div>
                         
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">العيادة</label>
-                            <select name="clinic_id" value={visitFormData.clinic_id} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg bg-white" required >
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">العيادة</label>
+                            <select name="clinic_id" value={visitFormData.clinic_id} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" required >
                                 {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">نوع الزيارة</label>
-                            <select name="visit_type" value={visitFormData.visit_type} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg bg-white" required >
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">نوع الزيارة</label>
+                            <select name="visit_type" value={visitFormData.visit_type} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" required >
                                 <option value={VisitType.FirstVisit}>كشف جديد</option>
                                 <option value={VisitType.FollowUp}>متابعة</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">قيمة الكشف</label>
-                            <input type="number" value={visitFormData.base_amount} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100" readOnly />
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">قيمة الكشف</label>
+                            <input type="number" value={visitFormData.base_amount} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-600 dark:border-gray-500" readOnly />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">الخصم</label>
-                            <input type="number" name="discount" value={visitFormData.discount} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg" min="0" placeholder="0" />
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">الخصم</label>
+                            <input type="number" name="discount" value={visitFormData.discount} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" min="0" placeholder="0" />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">تاريخ الإيراد</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">تاريخ الإيراد</label>
                             <input
                                 type="date"
                                 name="revenue_date"
                                 value={visitFormData.revenue_date}
                                 onChange={handleVisitFormChange}
-                                className="w-full p-2 border border-gray-300 rounded-lg"
+                                className="w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                 required
                             />
                         </div>
                         
                         <div>
-                             <label className="block text-sm font-medium text-gray-700 mb-1">المبلغ بعد الخصم</label>
-                             <input type="number" value={visitAmountAfterDiscount} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 font-bold text-teal-700 text-lg" readOnly />
+                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">المبلغ بعد الخصم</label>
+                             <input type="number" value={visitAmountAfterDiscount} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 font-bold text-teal-700 dark:text-teal-400 dark:bg-gray-600 dark:border-gray-500" readOnly />
                         </div>
 
 
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">ملاحظات</label>
-                            <textarea name="notes" value={visitFormData.notes} onChange={handleVisitFormChange} rows={3} className="w-full p-2 border border-gray-300 rounded-lg" placeholder="أي تفاصيل إضافية..." />
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ملاحظات</label>
+                            <textarea name="notes" value={visitFormData.notes} onChange={handleVisitFormChange} rows={3} className="w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="أي تفاصيل إضافية..." />
                         </div>
                     </div>
                     <div className="pt-4 flex flex-col md:flex-row gap-2">

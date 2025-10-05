@@ -19,7 +19,7 @@ const Dashboard: React.FC = () => {
             <>
                 <ManagerDashboard />
                 <div className="mt-8">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4">إدارة الاستقبال</h2>
+                    <h2 className="text-2xl font-bold text-teal-800 dark:text-teal-300 mb-4">إدارة الاستقبال</h2>
                     <ReceptionistDashboard />
                 </div>
             </>
@@ -31,7 +31,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div>
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">لوحة التحكم</h1>
+        <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-6">لوحة التحكم</h1>
         {renderDashboard()}
     </div>
   );

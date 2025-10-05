@@ -41,7 +41,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { notification } = useApp();
   
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <div className="no-print">
         <Sidebar />
       </div>
@@ -49,7 +49,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         <div className="no-print">
           <Header />
         </div>
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
           {children}
         </main>
       </div>

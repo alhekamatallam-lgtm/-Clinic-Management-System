@@ -40,9 +40,43 @@
           border: 1px solid #ccc;
         }
       }
+      /* Recharts Dark Mode Styles */
+      .recharts-text.recharts-cartesian-axis-tick-value {
+          fill: #4b5563; /* gray-600 */
+      }
+      .recharts-legend-item-text {
+          color: #4b5563 !important; /* gray-600 */
+      }
+      .recharts-tooltip-label {
+         color: #374151 !important; /* gray-700 */
+      }
+      .recharts-cartesian-grid-horizontal line, 
+      .recharts-cartesian-grid-vertical line { 
+          stroke: #e5e7eb; /* gray-200 */
+      }
+      @media (prefers-color-scheme: dark) {
+        .recharts-text.recharts-cartesian-axis-tick-value {
+            fill: #d1d5db; /* gray-300 */
+        }
+        .recharts-legend-item-text {
+            color: #d1d5db !important; /* gray-300 */
+        }
+        .recharts-tooltip-wrapper {
+            background-color: #1f2937 !important; /* gray-800 */
+            border-color: #4b5563 !important; /* gray-600 */
+        }
+        .recharts-tooltip-label {
+           color: #f9fafb !important; /* gray-50 */
+        }
+        .recharts-cartesian-grid-horizontal line, 
+        .recharts-cartesian-grid-vertical line { 
+            stroke: #374151; /* gray-700 */
+        }
+      }
     </style>
     <script>
       tailwind.config = {
+        darkMode: 'media', // Enable dark mode based on OS preference
         theme: {
           extend: {
             fontFamily: {
@@ -64,7 +98,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-50">
+  <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

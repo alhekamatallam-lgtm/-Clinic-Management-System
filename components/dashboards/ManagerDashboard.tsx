@@ -109,8 +109,8 @@ const ManagerDashboard: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-6 rounded-xl shadow-md">
-                    <h3 className="font-bold text-gray-700 mb-4">الإيرادات حسب العيادة</h3>
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                    <h3 className="font-bold text-teal-800 dark:text-teal-300 mb-4">الإيرادات حسب العيادة</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={revenueByClinic}>
                             <CartesianGrid strokeDasharray="3 3" />
@@ -122,8 +122,8 @@ const ManagerDashboard: React.FC = () => {
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
-                <div className="bg-white p-6 rounded-xl shadow-md">
-                    <h3 className="font-bold text-gray-700 mb-4">عدد الزيارات (آخر 7 أيام)</h3>
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                    <h3 className="font-bold text-teal-800 dark:text-teal-300 mb-4">عدد الزيارات (آخر 7 أيام)</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={dailyVisitData}>
                             <CartesianGrid strokeDasharray="3 3" />

@@ -137,9 +137,9 @@ const Revenues: React.FC = () => {
 
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-md">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">سجل الإيرادات</h1>
+                <h1 className="text-2xl font-bold text-teal-800 dark:text-teal-300">سجل الإيرادات</h1>
                 <button 
                     onClick={handleOpenModal}
                     className="flex items-center bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors"
@@ -150,27 +150,27 @@ const Revenues: React.FC = () => {
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-right">
-                    <thead className="bg-gray-100">
+                    <thead className="bg-gray-100 dark:bg-gray-700">
                         <tr>
-                            <th className="p-3 text-sm font-semibold tracking-wide">#</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">اسم المريض</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">العيادة</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">المبلغ</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">التاريخ</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">نوع الزيارة</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">ملاحظات</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">#</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">اسم المريض</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">العيادة</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">المبلغ</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">التاريخ</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">نوع الزيارة</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">ملاحظات</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {revenues.map(revenue => (
-                            <tr key={revenue.revenue_id} className="hover:bg-gray-50">
-                                <td className="p-3 text-sm text-gray-700">{revenue.revenue_id}</td>
-                                <td className="p-3 text-sm text-gray-700">{revenue.patient_name}</td>
-                                <td className="p-3 text-sm text-gray-700">{getClinicName(revenue.clinic_id)}</td>
-                                <td className="p-3 text-sm text-gray-700 font-bold">{revenue.amount} ريال</td>
-                                <td className="p-3 text-sm text-gray-700">{revenue.date}</td>
-                                <td className="p-3 text-sm text-gray-700">{revenue.type}</td>
-                                <td className="p-3 text-sm text-gray-700">{revenue.notes}</td>
+                            <tr key={revenue.revenue_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.revenue_id}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.patient_name}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{getClinicName(revenue.clinic_id)}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300 font-bold">{revenue.amount} ريال</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.date}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.type}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.notes}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -182,7 +182,7 @@ const Revenues: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Patient Name - Full Width */}
                         <div className="md:col-span-2" ref={patientInputRef}>
-                            <label htmlFor="patient_name_modal" className="block text-sm font-medium text-gray-700 mb-1">اسم المريض</label>
+                            <label htmlFor="patient_name_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">اسم المريض</label>
                             <div className="relative">
                                 <input
                                     type="text"
@@ -192,15 +192,15 @@ const Revenues: React.FC = () => {
                                     onChange={handlePatientChange}
                                     onFocus={() => setIsPatientDropdownOpen(true)}
                                     autoComplete="off"
-                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                     required
                                 />
                                 {isPatientDropdownOpen && filteredPatients.length > 0 && (
-                                    <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
+                                    <ul className="absolute z-10 w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
                                         {filteredPatients.map(patient => (
                                             <li
                                                 key={patient.patient_id}
-                                                className="px-4 py-2 hover:bg-teal-100 cursor-pointer"
+                                                className="px-4 py-2 hover:bg-teal-100 dark:hover:bg-teal-900 cursor-pointer"
                                                 onClick={() => handlePatientSelect(patient)}
                                             >
                                                 {patient.name}
@@ -213,26 +213,26 @@ const Revenues: React.FC = () => {
 
                         {/* Clinic & Visit Type */}
                         <div>
-                            <label htmlFor="clinic_id_modal" className="block text-sm font-medium text-gray-700 mb-1">العيادة</label>
+                            <label htmlFor="clinic_id_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">العيادة</label>
                             <select
                                 name="clinic_id"
                                 id="clinic_id_modal"
                                 value={formData.clinic_id}
                                 onChange={handleChange}
-                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white"
+                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                 required
                             >
                                 {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="type_modal" className="block text-sm font-medium text-gray-700 mb-1">نوع الإيراد</label>
+                            <label htmlFor="type_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">نوع الإيراد</label>
                             <select
                                 name="type"
                                 id="type_modal"
                                 value={formData.type}
                                 onChange={handleChange}
-                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white"
+                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                 required
                             >
                                 <option value={VisitType.FirstVisit}>كشف جديد</option>
@@ -242,24 +242,24 @@ const Revenues: React.FC = () => {
 
                         {/* Base Amount & Discount */}
                         <div>
-                            <label htmlFor="amount_modal" className="block text-sm font-medium text-gray-700 mb-1">قيمة الكشف</label>
+                            <label htmlFor="amount_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">قيمة الكشف</label>
                             <input
                                 type="number"
                                 id="amount_modal"
                                 value={formData.amount}
-                                className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100"
+                                className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-600 dark:border-gray-500"
                                 readOnly
                             />
                         </div>
                         <div>
-                            <label htmlFor="discount_modal" className="block text-sm font-medium text-gray-700 mb-1">الخصم</label>
+                            <label htmlFor="discount_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">الخصم</label>
                             <input
                                 type="number"
                                 name="discount"
                                 id="discount_modal"
                                 value={formData.discount}
                                 onChange={handleChange}
-                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                 min="0"
                                 placeholder="0"
                             />
@@ -267,38 +267,38 @@ const Revenues: React.FC = () => {
 
                         {/* Amount After Discount & Date */}
                         <div>
-                            <label htmlFor="amount_after_discount_modal" className="block text-sm font-medium text-gray-700 mb-1">المبلغ بعد الخصم</label>
+                            <label htmlFor="amount_after_discount_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">المبلغ بعد الخصم</label>
                             <input
                                 type="number"
                                 id="amount_after_discount_modal"
                                 value={amountAfterDiscount}
-                                className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 font-bold text-teal-700"
+                                className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 font-bold text-teal-700 dark:bg-gray-600 dark:border-gray-500 dark:text-teal-400"
                                 readOnly
                             />
                         </div>
                         <div>
-                            <label htmlFor="date_modal" className="block text-sm font-medium text-gray-700 mb-1">تاريخ الإيراد</label>
+                            <label htmlFor="date_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">تاريخ الإيراد</label>
                             <input
                                 type="date"
                                 name="date"
                                 id="date_modal"
                                 value={formData.date}
                                 onChange={handleChange}
-                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                 required
                             />
                         </div>
 
                         {/* Notes - Full Width */}
                         <div className="md:col-span-2">
-                            <label htmlFor="notes_modal" className="block text-sm font-medium text-gray-700 mb-1">ملاحظات</label>
+                            <label htmlFor="notes_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ملاحظات</label>
                             <textarea
                                 name="notes"
                                 id="notes_modal"
                                 value={formData.notes}
                                 onChange={handleChange}
                                 rows={3}
-                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                 placeholder="أي تفاصيل إضافية..."
                             />
                         </div>

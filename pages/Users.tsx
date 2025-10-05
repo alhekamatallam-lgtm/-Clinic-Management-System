@@ -136,9 +136,9 @@ const Users: React.FC = () => {
     };
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-md">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">إدارة المستخدمين</h1>
+                <h1 className="text-2xl font-bold text-teal-800 dark:text-teal-300">إدارة المستخدمين</h1>
                 {isManager && (
                     <button onClick={handleOpenAddModal} className="flex items-center bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors">
                         <PlusIcon className="h-5 w-5 ml-2"/>
@@ -148,34 +148,34 @@ const Users: React.FC = () => {
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-right">
-                    <thead className="bg-gray-100">
+                    <thead className="bg-gray-100 dark:bg-gray-700">
                         <tr>
-                            <th className="p-3 text-sm font-semibold tracking-wide">#</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">الاسم</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">اسم المستخدم</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">الصلاحية</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">العيادة</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">رقم الطبيب</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide">اسم الطبيب</th>
-                            {isManager && <th className="p-3 text-sm font-semibold tracking-wide">إجراءات</th>}
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">#</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">الاسم</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">اسم المستخدم</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">الصلاحية</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">العيادة</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">رقم الطبيب</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">اسم الطبيب</th>
+                            {isManager && <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">إجراءات</th>}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {users.map(userRow => (
-                            <tr key={userRow.user_id} className="hover:bg-gray-50">
-                                <td className="p-3 text-sm text-gray-700">{userRow.user_id}</td>
-                                <td className="p-3 text-sm text-gray-700 font-medium">{userRow.name}</td>
-                                <td className="p-3 text-sm text-gray-700">{userRow.username}</td>
-                                <td className="p-3 text-sm text-gray-700">{userRow.role}</td>
-                                <td className="p-3 text-sm text-gray-700">{clinics.find(c => c.clinic_id === userRow.clinic_id)?.clinic_name || 'N/A'}</td>
-                                <td className="p-3 text-sm text-gray-700">{userRow.role === Role.Doctor ? userRow.doctor_id : 'N/A'}</td>
-                                <td className="p-3 text-sm text-gray-700">{userRow.role === Role.Doctor ? userRow.doctor_name : 'N/A'}</td>
+                            <tr key={userRow.user_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.user_id}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300 font-medium">{userRow.name}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.username}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.role}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{clinics.find(c => c.clinic_id === userRow.clinic_id)?.clinic_name || 'N/A'}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.role === Role.Doctor ? userRow.doctor_id : 'N/A'}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.role === Role.Doctor ? userRow.doctor_name : 'N/A'}</td>
                                 {isManager && (
-                                    <td className="p-3 text-sm text-gray-700 space-x-2 space-x-reverse">
-                                        <button onClick={() => handleOpenEditModal(userRow)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full" title="تعديل">
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300 space-x-2 space-x-reverse">
+                                        <button onClick={() => handleOpenEditModal(userRow)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full dark:hover:bg-blue-900" title="تعديل">
                                             <PencilIcon className="h-5 w-5" />
                                         </button>
-                                        <button onClick={() => handleOpenPasswordModal(userRow)} className="p-2 text-gray-600 hover:bg-gray-200 rounded-full" title="تغيير كلمة المرور">
+                                        <button onClick={() => handleOpenPasswordModal(userRow)} className="p-2 text-gray-600 hover:bg-gray-200 rounded-full dark:hover:bg-gray-600" title="تغيير كلمة المرور">
                                             <KeyIcon className="h-5 w-5" />
                                         </button>
                                     </td>
@@ -189,8 +189,8 @@ const Users: React.FC = () => {
             <Modal title={selectedUser ? 'تعديل مستخدم' : 'إضافة مستخدم جديد'} isOpen={isAddEditModalOpen} onClose={handleCloseModals}>
                 <form onSubmit={handleAddEditSubmit} className="space-y-4">
                     <div>
-                        <label className="block mb-1 text-sm font-medium text-gray-700">الصلاحية</label>
-                        <select name="role" value={formData.role || ''} onChange={handleFormChange} className="w-full p-2 border rounded" required>
+                        <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">الصلاحية</label>
+                        <select name="role" value={formData.role || ''} onChange={handleFormChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
                             <option value={Role.Reception}>موظف استقبال</option>
                             <option value={Role.Doctor}>طبيب</option>
                             <option value={Role.Manager}>مدير</option>
@@ -200,11 +200,11 @@ const Users: React.FC = () => {
                     {formData.role === Role.Doctor ? (
                         <>
                             <div>
-                                <label className="block mb-1 text-sm font-medium text-gray-700">اختر الطبيب</label>
+                                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">اختر الطبيب</label>
                                 <select 
                                     value={selectedDoctorForForm?.doctor_id || ''} 
                                     onChange={handleDoctorSelectChange} 
-                                    className="w-full p-2 border rounded bg-white" 
+                                    className="w-full p-2 border rounded bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
                                     required
                                 >
                                     <option value="">-- اختر طبيب --</option>
@@ -213,26 +213,26 @@ const Users: React.FC = () => {
                             </div>
                             
                             <div>
-                                <label className="block mb-1 text-sm font-medium text-gray-700">الاسم</label>
+                                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">الاسم</label>
                                 <input 
                                     type="text" 
                                     value={formData.name || ''} 
-                                    className="w-full p-2 border rounded bg-gray-100" 
+                                    className="w-full p-2 border rounded bg-gray-100 dark:bg-gray-600 dark:border-gray-500" 
                                     readOnly 
                                 />
                             </div>
 
                             <div>
-                                <label className="block mb-1 text-sm font-medium text-gray-700">اسم المستخدم (للدخول)</label>
-                                <input type="text" name="username" value={formData.username || ''} onChange={handleFormChange} className="w-full p-2 border rounded" required />
+                                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">اسم المستخدم (للدخول)</label>
+                                <input type="text" name="username" value={formData.username || ''} onChange={handleFormChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
                             </div>
 
                             <div>
-                                <label className="block mb-1 text-sm font-medium text-gray-700">العيادة</label>
+                                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">العيادة</label>
                                 <input 
                                     type="text" 
                                     value={clinics.find(c => c.clinic_id === formData.clinic_id)?.clinic_name || ''} 
-                                    className="w-full p-2 border rounded bg-gray-100" 
+                                    className="w-full p-2 border rounded bg-gray-100 dark:bg-gray-600 dark:border-gray-500" 
                                     readOnly 
                                 />
                             </div>
@@ -240,20 +240,20 @@ const Users: React.FC = () => {
                     ) : (
                         <>
                             <div>
-                                <label className="block mb-1 text-sm font-medium text-gray-700">الاسم</label>
-                                <input type="text" name="name" value={formData.name || ''} onChange={handleFormChange} className="w-full p-2 border rounded" required />
+                                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">الاسم</label>
+                                <input type="text" name="name" value={formData.name || ''} onChange={handleFormChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
                             </div>
                             <div>
-                                <label className="block mb-1 text-sm font-medium text-gray-700">اسم المستخدم</label>
-                                <input type="text" name="username" value={formData.username || ''} onChange={handleFormChange} className="w-full p-2 border rounded" required />
+                                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">اسم المستخدم</label>
+                                <input type="text" name="username" value={formData.username || ''} onChange={handleFormChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
                             </div>
                         </>
                     )}
                     
                     {!selectedUser && (
                          <div>
-                            <label className="block mb-1 text-sm font-medium text-gray-700">كلمة المرور</label>
-                            <input type="password" name="password" value={formData.password || ''} onChange={handleFormChange} className="w-full p-2 border rounded" required />
+                            <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">كلمة المرور</label>
+                            <input type="password" name="password" value={formData.password || ''} onChange={handleFormChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
                         </div>
                     )}
                     
@@ -266,12 +266,12 @@ const Users: React.FC = () => {
             <Modal title={`تغيير كلمة مرور ${selectedUser?.username}`} isOpen={isPasswordModalOpen} onClose={handleCloseModals}>
                  <form onSubmit={handlePasswordSubmit} className="space-y-4">
                      <div>
-                        <label className="block mb-1 text-sm font-medium text-gray-700">كلمة المرور الجديدة</label>
-                        <input type="password" value={passwordData.password} onChange={e => setPasswordData(p => ({...p, password: e.target.value}))} className="w-full p-2 border rounded" required />
+                        <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">كلمة المرور الجديدة</label>
+                        <input type="password" value={passwordData.password} onChange={e => setPasswordData(p => ({...p, password: e.target.value}))} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
                     </div>
                      <div>
-                        <label className="block mb-1 text-sm font-medium text-gray-700">تأكيد كلمة المرور</label>
-                        <input type="password" value={passwordData.confirmPassword} onChange={e => setPasswordData(p => ({...p, confirmPassword: e.target.value}))} className="w-full p-2 border rounded" required />
+                        <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">تأكيد كلمة المرور</label>
+                        <input type="password" value={passwordData.confirmPassword} onChange={e => setPasswordData(p => ({...p, confirmPassword: e.target.value}))} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
                     </div>
                     <button type="submit" className="w-full bg-teal-500 text-white p-2 rounded hover:bg-teal-600">
                         تغيير كلمة المرور

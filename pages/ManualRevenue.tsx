@@ -59,67 +59,67 @@ const ManualRevenue: React.FC = () => {
     };
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-md max-w-2xl mx-auto">
-            <h1 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">إضافة إيراد يدوي</h1>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md max-w-2xl mx-auto">
+            <h1 className="text-2xl font-bold text-teal-800 dark:text-teal-300 mb-6 border-b dark:border-gray-700 pb-4">إضافة إيراد يدوي</h1>
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                    <label htmlFor="patient_name" className="block text-sm font-medium text-gray-700 mb-1">اسم المريض</label>
+                    <label htmlFor="patient_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">اسم المريض</label>
                     <input
                         type="text"
                         name="patient_name"
                         id="patient_name"
                         value={formData.patient_name}
                         onChange={handleChange}
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         required
                     />
                 </div>
                 <div>
-                    <label htmlFor="clinic_id" className="block text-sm font-medium text-gray-700 mb-1">العيادة</label>
+                    <label htmlFor="clinic_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">العيادة</label>
                     <select
                         name="clinic_id"
                         id="clinic_id"
                         value={formData.clinic_id}
                         onChange={handleChange}
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white"
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         required
                     >
                         {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">المبلغ</label>
+                    <label htmlFor="amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">المبلغ</label>
                     <input
                         type="number"
                         name="amount"
                         id="amount"
                         value={formData.amount}
                         onChange={handleChange}
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         required
                         min="0"
                     />
                 </div>
                 <div>
-                    <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">تاريخ الإيراد</label>
+                    <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">تاريخ الإيراد</label>
                     <input
                         type="date"
                         name="date"
                         id="date"
                         value={formData.date}
                         onChange={handleChange}
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         required
                     />
                 </div>
                 <div>
-                    <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">نوع الإيراد</label>
+                    <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">نوع الإيراد</label>
                     <select
                         name="type"
                         id="type"
                         value={formData.type}
                         onChange={handleChange}
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white"
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         required
                     >
                         <option value={VisitType.FirstVisit}>كشف جديد</option>
@@ -127,14 +127,14 @@ const ManualRevenue: React.FC = () => {
                     </select>
                 </div>
                 <div>
-                    <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">ملاحظات</label>
+                    <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ملاحظات</label>
                     <textarea
                         name="notes"
                         id="notes"
                         value={formData.notes}
                         onChange={handleChange}
                         rows={3}
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         placeholder="أي تفاصيل إضافية..."
                     />
                 </div>
