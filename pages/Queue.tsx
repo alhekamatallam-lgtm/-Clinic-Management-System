@@ -11,7 +11,7 @@ const getLocalYYYYMMDD = (date: Date): string => {
 };
 
 const Queue: React.FC = () => {
-    const { user, visits, patients, clinics } = useApp();
+    const { user, visits, patients, clinics, diagnoses } = useApp();
 
     const today = getLocalYYYYMMDD(new Date());
 
@@ -19,13 +19,19 @@ const Queue: React.FC = () => {
         .filter(v => {
             const isToday = v.visit_date === today;
             const isWaitingStatus = v.status === VisitStatus.Waiting || v.status === VisitStatus.InProgress;
-            
+            const isDiagnosed = diagnoses.some(d => d.visit_id === v.visit_id);
+
+            // Base conditions to be excluded from the queue
+            if (!isToday || !isWaitingStatus || isDiagnosed) {
+                return false;
+            }
+
+            // Role-specific filtering (for doctors viewing their own queue)
             if (user?.role === Role.Doctor) {
-                // FIX: Changed user.clinic to user.clinic_id to match the User type definition.
-                return isToday && isWaitingStatus && v.clinic_id === user.clinic_id;
+                return v.clinic_id === user.clinic_id;
             }
             
-            return isToday && isWaitingStatus;
+            return true; // For receptionists/managers, show all clinics
         })
         .sort((a, b) => a.queue_number - b.queue_number);
 

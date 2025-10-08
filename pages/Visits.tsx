@@ -29,6 +29,14 @@ const Visits: React.FC = () => {
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
 
+    const getEffectiveStatus = (visit: Visit): VisitStatus => {
+        const isDiagnosed = diagnoses.some(d => d.visit_id === visit.visit_id);
+        if (isDiagnosed && visit.status !== VisitStatus.Canceled) {
+            return VisitStatus.Completed;
+        }
+        return visit.status;
+    };
+
     const filteredVisits = useMemo(() => {
         let tempVisits = [...visits];
 
@@ -44,7 +52,7 @@ const Visits: React.FC = () => {
 
         // 3. Status filter
         if (statusFilter !== 'all') {
-            tempVisits = tempVisits.filter(visit => visit.status === statusFilter);
+            tempVisits = tempVisits.filter(visit => getEffectiveStatus(visit) === statusFilter);
         }
 
         // 4. Date range filter
@@ -64,7 +72,7 @@ const Visits: React.FC = () => {
             return dateB - a.queue_number - (dateA - b.queue_number);
         });
 
-    }, [visits, user, clinicFilter, statusFilter, startDate, endDate]);
+    }, [visits, user, clinicFilter, statusFilter, startDate, endDate, diagnoses]);
     
     const pastDiagnosesForSelectedPatient = useMemo(() => {
         if (!selectedPatientForHistory) return [];
@@ -217,6 +225,7 @@ const Visits: React.FC = () => {
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {filteredVisits.map(visit => {
                             const hasDiagnosis = diagnoses.some(d => d.visit_id === visit.visit_id);
+                            const effectiveStatus = getEffectiveStatus(visit);
                             return (
                                 <tr key={visit.visit_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden lg:table-cell">{visit.visit_id}</td>
@@ -225,8 +234,8 @@ const Visits: React.FC = () => {
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden sm:table-cell">{visit.visit_date}</td>
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden lg:table-cell">{visit.queue_number}</td>
                                     <td className="p-3">
-                                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(visit.status)}`}>
-                                          {visit.status}
+                                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(effectiveStatus)}`}>
+                                          {effectiveStatus}
                                       </span>
                                     </td>
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden lg:table-cell">{visit.visit_type}</td>

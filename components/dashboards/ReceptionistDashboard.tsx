@@ -56,7 +56,12 @@ const ReceptionistDashboard: React.FC = () => {
     }, [visitFormData.clinic_id, visitFormData.visit_type, clinics, isAddVisitModalOpen]);
 
     const dailyVisits = visits.filter(v => v.visit_date === today).length;
-    const waitingPatients = visits.filter(v => v.visit_date === today && v.status === VisitStatus.Waiting).length;
+    
+    const waitingPatients = visits.filter(v => 
+        v.visit_date === today &&
+        (v.status === VisitStatus.Waiting || v.status === VisitStatus.InProgress) &&
+        !diagnoses.some(d => d.visit_id === v.visit_id)
+    ).length;
 
     const filteredPatients = patients.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

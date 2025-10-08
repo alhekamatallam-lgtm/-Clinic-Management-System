@@ -14,6 +14,7 @@ import ManualRevenue from './pages/ManualRevenue';
 import Revenues from './pages/Revenues';
 import Doctors from './pages/Doctors';
 import MedicalReport from './pages/MedicalReport';
+import DailyClinicReport from './pages/DailyClinicReport';
 
 const App: React.FC = () => {
   const { user, currentView, loading, error } = useApp();
@@ -38,6 +39,8 @@ const App: React.FC = () => {
         return <Reports />;
       case 'medical-report':
         return <MedicalReport />;
+      case 'daily-clinic-report':
+        return <DailyClinicReport />;
       case 'queue':
         return <Queue />;
       case 'manual-revenue':

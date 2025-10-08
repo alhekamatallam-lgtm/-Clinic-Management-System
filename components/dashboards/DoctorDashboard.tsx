@@ -33,12 +33,28 @@ const DoctorDashboard: React.FC = () => {
     const today = getLocalYYYYMMDD(new Date());
     const doctorClinicId = user.clinic_id;
 
+    const hasDiagnosis = (visitId: number) => diagnoses.some(d => d.visit_id === visitId);
+
+    const getEffectiveStatus = (visit: Visit): VisitStatus => {
+        if (hasDiagnosis(visit.visit_id) && visit.status !== VisitStatus.Canceled) {
+            return VisitStatus.Completed;
+        }
+        return visit.status;
+    };
+
     const myVisitsToday = visits.filter(v => v.clinic_id === doctorClinicId && v.visit_date === today)
         .sort((a,b) => a.queue_number - b.queue_number);
 
-    // Split visits into waiting and completed lists for dynamic queue numbering
-    const waitingVisits = myVisitsToday.filter(v => v.status === VisitStatus.Waiting || v.status === VisitStatus.InProgress);
-    const completedVisits = myVisitsToday.filter(v => v.status === VisitStatus.Completed || v.status === VisitStatus.Canceled);
+    // Split visits into waiting and completed lists based on the effective status
+    const waitingVisits = myVisitsToday.filter(v => {
+        const status = getEffectiveStatus(v);
+        return status === VisitStatus.Waiting || status === VisitStatus.InProgress;
+    });
+
+    const completedVisits = myVisitsToday.filter(v => {
+        const status = getEffectiveStatus(v);
+        return status === VisitStatus.Completed || status === VisitStatus.Canceled;
+    });
     
     const todaysRevenue = revenues
         .filter(r => r.clinic_id === doctorClinicId && r.date === today)
@@ -79,27 +95,30 @@ const DoctorDashboard: React.FC = () => {
         }
     }
 
-    const VisitRow: React.FC<{visit: Visit, queuePosition: React.ReactNode, isWaiting: boolean}> = ({ visit, queuePosition, isWaiting }) => (
-        <tr className={`border-b dark:border-gray-700 ${!isWaiting ? 'bg-gray-50 dark:bg-gray-800/60 opacity-60' : ''}`}>
-            <td className="p-3 font-bold text-teal-800 dark:text-teal-300">{queuePosition}</td>
-            <td className="p-3 font-medium text-gray-800 dark:text-gray-200">{getPatientName(visit.patient_id)}</td>
-            <td className="p-3">
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(visit.status)}`}>
-                    {visit.status}
-                </span>
-            </td>
-            <td className="p-3">
-                 <button 
-                    onClick={() => openDiagnosisModal(visit.visit_id)} 
-                    className="bg-teal-500 text-white px-3 py-1 rounded-md text-sm hover:bg-teal-600 disabled:bg-gray-400 flex items-center"
-                    disabled={!isWaiting}
-                >
-                  <PencilSquareIcon className="h-4 w-4 ml-1" />
-                  {diagnoses.find(d => d.visit_id === visit.visit_id) ? 'عرض التشخيص' : 'تسجيل التشخيص'}
-                </button>
-            </td>
-        </tr>
-    );
+    const VisitRow: React.FC<{visit: Visit, queuePosition: React.ReactNode, isWaiting: boolean}> = ({ visit, queuePosition, isWaiting }) => {
+        const effectiveStatus = getEffectiveStatus(visit);
+        return (
+            <tr className={`border-b dark:border-gray-700 ${!isWaiting ? 'bg-gray-50 dark:bg-gray-800/60 opacity-60' : ''}`}>
+                <td className="p-3 font-bold text-teal-800 dark:text-teal-300">{queuePosition}</td>
+                <td className="p-3 font-medium text-gray-800 dark:text-gray-200">{getPatientName(visit.patient_id)}</td>
+                <td className="p-3">
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(effectiveStatus)}`}>
+                        {effectiveStatus}
+                    </span>
+                </td>
+                <td className="p-3">
+                     <button 
+                        onClick={() => openDiagnosisModal(visit.visit_id)} 
+                        className="bg-teal-500 text-white px-3 py-1 rounded-md text-sm hover:bg-teal-600 disabled:bg-gray-400 flex items-center"
+                        disabled={!isWaiting}
+                    >
+                      <PencilSquareIcon className="h-4 w-4 ml-1" />
+                      {hasDiagnosis(visit.visit_id) ? 'عرض التشخيص' : 'تسجيل التشخيص'}
+                    </button>
+                </td>
+            </tr>
+        );
+    };
 
     return (
         <div>

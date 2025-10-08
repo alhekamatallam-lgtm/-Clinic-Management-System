@@ -91,4 +91,4 @@ export interface Doctor {
   status: 'نشط' | 'غير نشط';
 }
 
-export type View = 'dashboard' | 'patients' | 'visits' | 'diagnosis' | 'users' | 'clinics' | 'reports' | 'queue' | 'manual-revenue' | 'revenues' | 'doctors' | 'medical-report';
+export type View = 'dashboard' | 'patients' | 'visits' | 'diagnosis' | 'users' | 'clinics' | 'reports' | 'queue' | 'manual-revenue' | 'revenues' | 'doctors' | 'medical-report' | 'daily-clinic-report';
