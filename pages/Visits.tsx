@@ -204,13 +204,13 @@ const Visits: React.FC = () => {
                 <table className="w-full text-right">
                     <thead className="bg-gray-100 dark:bg-gray-700">
                         <tr>
-                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">#</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300 hidden lg:table-cell">#</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">اسم المريض</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">العيادة</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">التاريخ</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">رقم الانتظار</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300 hidden sm:table-cell">العيادة</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300 hidden sm:table-cell">التاريخ</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300 hidden lg:table-cell">رقم الانتظار</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">الحالة</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">نوع الزيارة</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300 hidden lg:table-cell">نوع الزيارة</th>
                             {(user?.role === Role.Manager || user?.role === Role.Doctor) && <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">إجراء</th>}
                         </tr>
                     </thead>
@@ -219,17 +219,17 @@ const Visits: React.FC = () => {
                             const hasDiagnosis = diagnoses.some(d => d.visit_id === visit.visit_id);
                             return (
                                 <tr key={visit.visit_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{visit.visit_id}</td>
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden lg:table-cell">{visit.visit_id}</td>
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300 font-medium">{getPatientName(visit.patient_id)}</td>
-                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{getClinicName(visit.clinic_id)}</td>
-                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{visit.visit_date}</td>
-                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{visit.queue_number}</td>
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden sm:table-cell">{getClinicName(visit.clinic_id)}</td>
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden sm:table-cell">{visit.visit_date}</td>
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden lg:table-cell">{visit.queue_number}</td>
                                     <td className="p-3">
                                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(visit.status)}`}>
                                           {visit.status}
                                       </span>
                                     </td>
-                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{visit.visit_type}</td>
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden lg:table-cell">{visit.visit_type}</td>
                                     {(user?.role === Role.Manager || user?.role === Role.Doctor) && (
                                         <td className="p-3">
                                             <button

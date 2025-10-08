@@ -1,10 +1,10 @@
 import React from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { Role, View } from '../../types';
-import { ChartBarIcon, UserGroupIcon, ClipboardDocumentListIcon, UsersIcon, BuildingOffice2Icon, DocumentChartBarIcon, PresentationChartLineIcon, BeakerIcon, QueueListIcon, DocumentPlusIcon, CurrencyDollarIcon, HeartIcon } from '@heroicons/react/24/outline';
+import { ChartBarIcon, UserGroupIcon, ClipboardDocumentListIcon, UsersIcon, BuildingOffice2Icon, DocumentChartBarIcon, PresentationChartLineIcon, BeakerIcon, QueueListIcon, DocumentPlusIcon, CurrencyDollarIcon, HeartIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 
 const Sidebar: React.FC = () => {
-    const { user, currentView, setView } = useApp();
+    const { user, currentView, setView, isSidebarOpen } = useApp();
 
     if (!user) return null;
 
@@ -18,8 +18,8 @@ const Sidebar: React.FC = () => {
         { view: 'users', label: 'المستخدمين', icon: UsersIcon, roles: [Role.Manager] },
         { view: 'clinics', label: 'العيادات', icon: BuildingOffice2Icon, roles: [Role.Manager] },
         { view: 'doctors', label: 'الأطباء', icon: HeartIcon, roles: [Role.Manager] },
-        { view: 'reports', label: 'التقارير', icon: DocumentChartBarIcon, roles: [Role.Doctor, Role.Manager] },
-        // { view: 'manual-revenue', label: 'إيراد يدوي', icon: DocumentPlusIcon, roles: [Role.Manager, Role.Reception] },
+        { view: 'reports', label: 'تقارير الإيرادات', icon: DocumentChartBarIcon, roles: [Role.Manager] },
+        { view: 'medical-report', label: 'التقارير الطبية', icon: DocumentTextIcon, roles: [Role.Doctor, Role.Manager] },
     ];
 
     const filteredNavItems = navItems.filter(item => item.roles.includes(user.role));
@@ -32,19 +32,23 @@ const Sidebar: React.FC = () => {
             <a
                 href="#"
                 onClick={(e) => { e.preventDefault(); setView(item.view as View); }}
-                className={`flex items-center px-4 py-3 text-gray-100 hover:bg-teal-700 rounded-lg transition-colors duration-200 ${isActive ? 'bg-teal-700 font-bold' : ''}`}
+                className={`flex items-center px-4 py-3 text-gray-100 hover:bg-teal-700 rounded-lg transition-colors duration-200 ${isActive ? 'bg-teal-700 font-bold' : ''} ${!isSidebarOpen ? 'justify-center' : ''}`}
+                title={!isSidebarOpen ? item.label : ''}
             >
-                <Icon className={`h-6 w-6 ml-3 ${colorClass}`} />
-                <span>{item.label}</span>
+                <Icon className={`h-6 w-6 flex-shrink-0 ${isSidebarOpen ? 'ml-3' : ''} ${colorClass}`} />
+                {isSidebarOpen && <span>{item.label}</span>}
             </a>
         );
     };
 
+    const mobileTransform = isSidebarOpen ? 'translate-x-0' : 'translate-x-full';
+    const desktopWidth = isSidebarOpen ? 'lg:w-64' : 'lg:w-20';
+
     return (
-        <div className="w-64 bg-teal-800 text-white flex flex-col p-4 space-y-4">
-            <div className="flex items-center justify-center py-4 border-b border-teal-700">
+        <div className={`fixed lg:static inset-y-0 right-0 z-30 bg-teal-800 text-white flex flex-col p-4 space-y-4 w-64 transform lg:transform-none transition-all duration-300 ease-in-out ${mobileTransform} ${desktopWidth}`}>
+            <div className="flex items-center justify-center py-4 border-b border-teal-700 overflow-hidden">
                 <ChartBarIcon className="h-8 w-8 text-teal-300 flex-shrink-0"/>
-                <h1 className="text-xl font-bold ml-2 text-center">مستوصف عيادات الراجحي التكافلي</h1>
+                {isSidebarOpen && <h1 className="text-xl font-bold ml-2 text-center whitespace-nowrap">مستوصف الراجحي</h1>}
             </div>
             <nav className="flex-1">
                 <ul className="space-y-2">

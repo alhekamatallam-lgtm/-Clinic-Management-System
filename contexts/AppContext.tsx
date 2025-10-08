@@ -86,6 +86,8 @@ interface AppContextType {
     // FIX: Expose showNotification function to the context.
     showNotification: (message: string, type?: 'success' | 'error') => void;
     hideNotification: () => void;
+    isSidebarOpen: boolean;
+    toggleSidebar: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -103,7 +105,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
 
     const [currentView, setCurrentView] = useState<View>('dashboard');
-    
+    const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
+
+    const toggleSidebar = () => {
+        setIsSidebarOpen(prev => !prev);
+    };
+
     // Data states
     const [patients, setPatients] = useState<Patient[]>([]);
     const [visits, setVisits] = useState<Visit[]>([]);
@@ -205,6 +212,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         fetchData();
     }, []);
 
+    // Effect to handle responsive sidebar state
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth <= 1024) {
+                setIsSidebarOpen(false);
+            } else {
+                setIsSidebarOpen(true);
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const postData = async (sheet: string, data: object) => {
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
@@ -256,6 +276,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const setView = (view: View) => {
         setCurrentView(view);
+        if (window.innerWidth < 1024) { // Close sidebar on mobile when changing view
+            setIsSidebarOpen(false);
+        }
         fetchData(true); // Use background refresh when changing views
     };
 
@@ -519,7 +542,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addUser, updateUser, addDoctor,
         isAdding, isAddingVisit,
         loading, isSyncing, error,
-        notification, hideNotification, showNotification
+        notification, hideNotification, showNotification,
+        isSidebarOpen, toggleSidebar,
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

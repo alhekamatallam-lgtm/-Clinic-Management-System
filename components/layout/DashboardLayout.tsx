@@ -38,13 +38,18 @@ const Notification: React.FC<{ message: string; type: 'success' | 'error'; }> = 
 
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { notification } = useApp();
+  const { notification, isSidebarOpen, toggleSidebar } = useApp();
   
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <div className="no-print">
-        <Sidebar />
-      </div>
+    <div className="relative flex h-screen bg-gray-100 dark:bg-gray-900">
+      <Sidebar />
+      {isSidebarOpen && (
+          <div 
+              onClick={toggleSidebar}
+              className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden no-print"
+              aria-hidden="true"
+          ></div>
+      )}
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="no-print">
           <Header />

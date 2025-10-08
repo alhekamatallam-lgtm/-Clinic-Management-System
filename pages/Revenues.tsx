@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import Modal from '../components/ui/Modal';
 import { PlusIcon } from '@heroicons/react/24/solid';
@@ -13,7 +13,6 @@ const getLocalYYYYMMDD = (date: Date): string => {
 };
 
 const Revenues: React.FC = () => {
-    // FIX: Destructure showNotification and consolidate useApp calls.
     const { revenues, clinics, patients, addManualRevenue, isAdding, showNotification } = useApp();
     
     const [isAddModalOpen, setAddModalOpen] = useState(false);
@@ -32,14 +31,21 @@ const Revenues: React.FC = () => {
 
     const [formData, setFormData] = useState(initialFormState);
     
-    // State for the searchable patient dropdown
     const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
     const patientInputRef = useRef<HTMLDivElement>(null);
 
-    // Derived values for calculation
     const baseAmount = parseFloat(formData.amount) || 0;
     const discount = parseFloat(formData.discount) || 0;
     const amountAfterDiscount = Math.max(0, baseAmount - discount);
+
+    const sortedRevenues = useMemo(() => [...revenues].sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        if (isNaN(dateA)) return 1;
+        if (isNaN(dateB)) return -1;
+        // Also sort by ID for same-day entries
+        return dateB - dateA || b.revenue_id - a.revenue_id;
+    }), [revenues]);
 
     const filteredPatients = formData.patient_name
         ? patients.filter(p => p.name.toLowerCase().includes(formData.patient_name.toLowerCase()))
@@ -48,7 +54,6 @@ const Revenues: React.FC = () => {
     const getClinicName = (id: number) => clinics.find(c => c.clinic_id === id)?.clinic_name || 'N/A';
 
     const handleOpenModal = () => {
-        // Reset form to initial state but with the first clinic pre-selected if available
         setFormData({
             ...initialFormState,
             clinic_id: clinics[0]?.clinic_id || 0,
@@ -65,13 +70,12 @@ const Revenues: React.FC = () => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
-            // Ensure clinic_id is stored as a number to fix auto-price fetching
             [name]: name === 'clinic_id' ? Number(value) : value,
         }));
     };
     
     const handlePatientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({ ...prev, patient_name: e.target.value, patient_id: null })); // Reset patient_id on manual change
+        setFormData(prev => ({ ...prev, patient_name: e.target.value, patient_id: null }));
         if (!isPatientDropdownOpen) {
             setIsPatientDropdownOpen(true);
         }
@@ -85,17 +89,25 @@ const Revenues: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (formData.patient_id === null) {
-            showNotification('يرجى اختيار مريض من القائمة لضمان اكتمال البيانات.', 'error');
+        if (formData.patient_id === null && formData.patient_name.trim() !== '') {
+            const potentialMatch = patients.find(p => p.name.toLowerCase() === formData.patient_name.toLowerCase().trim());
+             if(!potentialMatch) {
+                showNotification('يرجى اختيار مريض من القائمة أو التأكد من تطابق الاسم.', 'error');
+                return;
+             }
+             // If a match is found, use its ID.
+             handlePatientSelect(potentialMatch);
+        } else if (formData.patient_id === null) {
+            showNotification('يرجى اختيار مريض من القائمة.', 'error');
             return;
         }
         
         const success = await addManualRevenue({
-            visit_id: 0, // Explicitly set visit_id for unlinked revenue
+            visit_id: 0,
             patient_id: formData.patient_id,
             patient_name: formData.patient_name,
             clinic_id: formData.clinic_id,
-            amount: amountAfterDiscount, // Submit the final amount after discount
+            amount: amountAfterDiscount,
             date: formData.date,
             type: formData.type as VisitType,
             notes: formData.notes,
@@ -103,11 +115,10 @@ const Revenues: React.FC = () => {
 
         if (success) {
             handleCloseModal();
-            showNotification('تم تسجيل الإيراد بنجاح', 'success'); // Show notification on success
+            showNotification('تم تسجيل الإيراد بنجاح', 'success');
         }
     };
 
-    // Effect to auto-populate base amount and reset discount when clinic or visit type changes
     useEffect(() => {
         if (formData.clinic_id && clinics.length > 0) {
             const selectedClinic = clinics.find(c => c.clinic_id === formData.clinic_id);
@@ -122,7 +133,6 @@ const Revenues: React.FC = () => {
         }
     }, [formData.clinic_id, formData.type, clinics]);
 
-    // Effect to close dropdown on outside click
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (patientInputRef.current && !patientInputRef.current.contains(event.target as Node)) {
@@ -148,7 +158,9 @@ const Revenues: React.FC = () => {
                     إضافة إيراد جديد
                 </button>
             </div>
-            <div className="overflow-x-auto">
+
+            {/* Desktop Table View */}
+            <div className="overflow-x-auto hidden md:block">
                 <table className="w-full text-right">
                     <thead className="bg-gray-100 dark:bg-gray-700">
                         <tr>
@@ -162,7 +174,7 @@ const Revenues: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {revenues.map(revenue => (
+                        {sortedRevenues.map(revenue => (
                             <tr key={revenue.revenue_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.revenue_id}</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.patient_name}</td>
@@ -177,10 +189,34 @@ const Revenues: React.FC = () => {
                 </table>
             </div>
 
+            {/* Mobile Card View */}
+            <div className="space-y-4 md:hidden">
+                {sortedRevenues.map(revenue => (
+                    <div key={revenue.revenue_id} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg shadow">
+                        <div className="flex justify-between items-start">
+                            <div className="flex-grow">
+                                <p className="font-bold text-lg text-gray-800 dark:text-gray-200">{revenue.patient_name}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{getClinicName(revenue.clinic_id)}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{revenue.date}</p>
+                            </div>
+                            <div className="text-left flex-shrink-0 pl-2">
+                                <p className="text-xl font-bold text-teal-600 dark:text-teal-400">{revenue.amount} ريال</p>
+                                <p className="text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded-full text-gray-600 dark:text-gray-300 inline-block mt-1">{revenue.type}</p>
+                            </div>
+                        </div>
+                        {revenue.notes && (
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                                <span className="font-semibold">ملاحظات:</span> {revenue.notes}
+                            </p>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+
             <Modal title="إضافة إيراد جديد" isOpen={isAddModalOpen} onClose={handleCloseModal}>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Patient Name - Full Width */}
                         <div className="md:col-span-2" ref={patientInputRef}>
                             <label htmlFor="patient_name_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">اسم المريض</label>
                             <div className="relative">
@@ -211,7 +247,6 @@ const Revenues: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Clinic & Visit Type */}
                         <div>
                             <label htmlFor="clinic_id_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">العيادة</label>
                             <select
@@ -240,7 +275,6 @@ const Revenues: React.FC = () => {
                             </select>
                         </div>
 
-                        {/* Base Amount & Discount */}
                         <div>
                             <label htmlFor="amount_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">قيمة الكشف</label>
                             <input
@@ -265,7 +299,6 @@ const Revenues: React.FC = () => {
                             />
                         </div>
 
-                        {/* Amount After Discount & Date */}
                         <div>
                             <label htmlFor="amount_after_discount_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">المبلغ بعد الخصم</label>
                             <input
@@ -289,7 +322,6 @@ const Revenues: React.FC = () => {
                             />
                         </div>
 
-                        {/* Notes - Full Width */}
                         <div className="md:col-span-2">
                             <label htmlFor="notes_modal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ملاحظات</label>
                             <textarea

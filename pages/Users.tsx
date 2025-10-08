@@ -81,13 +81,23 @@ const Users: React.FC = () => {
     const handleDoctorSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedDoctorId = e.target.value;
         const doctor = doctors.find(d => d.doctor_id.toString() === selectedDoctorId);
-
+    
         if (doctor) {
             setSelectedDoctorForForm(doctor);
+            
+            // To resolve data inconsistencies, we now consider the 'Clinics' table as the
+            // single source of truth for which clinic a doctor is assigned to.
+            const assignedClinic = clinics.find(c => c.doctor_id === doctor.doctor_id);
+
+            if (!assignedClinic) {
+                alert(`تنبيه: الطبيب '${doctor.doctor_name}' غير معين كطبيب أساسي لأي عيادة في جدول العيادات. لن يتمكن من استخدام لوحة التحكم الخاصة به. يرجى مراجعة بيانات العيادات.`);
+            }
+    
             setFormData(prev => ({
                 ...prev,
                 name: doctor.doctor_name,
-                clinic_id: doctor.clinic_id,
+                // The user's clinic_id is now derived from the 'Clinics' table.
+                clinic_id: assignedClinic ? assignedClinic.clinic_id : undefined,
                 doctor_id: doctor.doctor_id,
                 doctor_name: doctor.doctor_name,
             }));
