@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { PrinterIcon } from '@heroicons/react/24/solid';
+import { Role } from '../types';
 
 // Helper to get 'YYYY-MM-DD' from a Date object, respecting local timezone.
 const getLocalYYYYMMDD = (date: Date): string => {
@@ -11,14 +12,19 @@ const getLocalYYYYMMDD = (date: Date): string => {
 };
 
 const DailyClinicReport: React.FC = () => {
-    const { clinics, visits, revenues } = useApp();
+    const { clinics, visits, revenues, user } = useApp();
     const [selectedDate, setSelectedDate] = useState<string>(getLocalYYYYMMDD(new Date()));
 
     const reportData = useMemo(() => {
         const dailyVisits = visits.filter(v => v.visit_date === selectedDate);
         const dailyRevenues = revenues.filter(r => r.date === selectedDate);
 
-        return clinics.map(clinic => {
+        // Filter clinics based on user role. Doctors see only their own clinic.
+        const clinicsToReport = (user?.role === Role.Doctor && user.clinic_id)
+            ? clinics.filter(c => c.clinic_id === user.clinic_id)
+            : clinics;
+
+        return clinicsToReport.map(clinic => {
             const clinicVisits = dailyVisits.filter(v => v.clinic_id === clinic.clinic_id);
             const clinicRevenues = dailyRevenues.filter(r => r.clinic_id === clinic.clinic_id);
 
@@ -32,7 +38,7 @@ const DailyClinicReport: React.FC = () => {
                 totalRevenue: totalRevenue,
             };
         });
-    }, [clinics, visits, revenues, selectedDate]);
+    }, [clinics, visits, revenues, selectedDate, user]);
 
     const grandTotals = useMemo(() => {
         const totalCases = reportData.reduce((sum, data) => sum + data.caseCount, 0);

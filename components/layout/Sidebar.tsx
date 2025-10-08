@@ -27,11 +27,11 @@ const Sidebar: React.FC = () => {
             id: 'reports-group',
             label: 'التقارير',
             icon: DocumentChartBarIcon,
-            roles: [Role.Doctor, Role.Manager],
+            roles: [Role.Reception, Role.Doctor, Role.Manager],
             subItems: [
-                { view: 'reports', label: 'تقارير الإيرادات', roles: [Role.Manager] },
-                { view: 'daily-clinic-report', label: 'التقرير اليومي للعيادات', roles: [Role.Manager] },
-                { view: 'medical-report', label: 'التقارير الطبية', roles: [Role.Doctor, Role.Manager] },
+                { view: 'reports', label: 'تقارير الإيرادات', roles: [Role.Reception, Role.Doctor, Role.Manager] },
+                { view: 'daily-clinic-report', label: 'التقرير اليومي للعيادات', roles: [Role.Reception, Role.Doctor, Role.Manager] },
+                { view: 'medical-report', label: 'التقارير الطبية', roles: [Role.Reception, Role.Doctor, Role.Manager] },
             ]
         },
         { view: 'users', label: 'المستخدمين', icon: UsersIcon, roles: [Role.Manager] },
