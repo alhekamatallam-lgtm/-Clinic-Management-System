@@ -13,6 +13,7 @@ const COLUMN_MAPPING = {
     Users: ['user_id', 'username', 'password', 'role', 'clinic_id', 'clinic', 'doctor_id', 'doctor_name', 'Name', 'status'],
     Doctors: ['doctor_id', 'doctor_name', 'specialty', 'clinic_id', 'phone', 'email', 'shift', 'status', 'signature'],
     Clinics: ['clinic_id', 'clinic_name', 'doctor_id', 'doctor_name', 'max_patients_per_day', 'price_first_visit', 'price_followup', 'shift', 'notes'],
+    Settings: ['logo', 'stamp', 'signature'],
 };
 
 // Helper function to format dates consistently to 'YYYY-MM-DD' in the local timezone.
@@ -90,8 +91,9 @@ interface AppContextType {
     toggleSidebar: () => void;
     clinicLogo: string | null;
     clinicStamp: string | null;
-    setClinicLogo: (logoBase64: string | null) => void;
-    setClinicStamp: (stampBase64: string | null) => void;
+    clinicSignature: string | null;
+    settings: { [key: string]: string };
+    updateSettings: (settings: { [key: string]: string }) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -110,9 +112,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const [currentView, setCurrentView] = useState<View>('dashboard');
     const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
-
-    const [clinicLogo, setClinicLogoState] = useState<string | null>(null);
-    const [clinicStamp, setClinicStampState] = useState<string | null>(null);
+    
+    // Settings state, loaded from backend
+    const [settings, setSettings] = useState<{ [key: string]: string }>({});
 
     const toggleSidebar = () => {
         setIsSidebarOpen(prev => !prev);
@@ -192,6 +194,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     ...v,
                     visit_date: formatDateToLocalYYYYMMDD(v.visit_date),
                 }));
+                
+                // Process Settings - new structure is an array with a single object
+                const settingsData = result.data.Settings || [];
+                const settingsMap = settingsData.length > 0 ? settingsData[0] : {};
+                setSettings(settingsMap);
 
                 setPatients(result.data.Patients || []);
                 setVisits(processedVisits);
@@ -214,13 +221,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     };
 
-    // Fetch initial data and load settings from localStorage
+    // Fetch initial data
     useEffect(() => {
         fetchData();
-        const storedLogo = localStorage.getItem('clinicLogo');
-        if (storedLogo) setClinicLogoState(storedLogo);
-        const storedStamp = localStorage.getItem('clinicStamp');
-        if (storedStamp) setClinicStampState(storedStamp);
     }, []);
 
     // Effect to handle responsive sidebar state
@@ -297,23 +300,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         fetchData(true);
     };
 
-    const setClinicLogo = (logoBase64: string | null) => {
-        if (logoBase64) {
-            localStorage.setItem('clinicLogo', logoBase64);
-        } else {
-            localStorage.removeItem('clinicLogo');
+    const updateSettings = async (newSettings: { [key: string]: string }) => {
+        const currentSettings = { ...settings };
+        try {
+            setSettings(newSettings); // Optimistic update
+            const result = await postData('Settings', { action: 'update', data: newSettings });
+            if (result.success) {
+                showNotification('تم حفظ الإعدادات بنجاح', 'success');
+                await fetchData(true); // Re-sync with backend
+            } else {
+                showNotification(result.message || 'فشل حفظ الإعدادات', 'error');
+                setSettings(currentSettings); // Revert on failure
+            }
+        } catch (e: any) {
+            showNotification(e.message || 'فشل حفظ الإعدادات', 'error');
+            setSettings(currentSettings); // Revert on failure
         }
-        setClinicLogoState(logoBase64);
     };
 
-    const setClinicStamp = (stampBase64: string | null) => {
-        if (stampBase64) {
-            localStorage.setItem('clinicStamp', stampBase64);
-        } else {
-            localStorage.removeItem('clinicStamp');
-        }
-        setClinicStampState(stampBase64);
-    };
 
     const addPatient = async (patientData: Omit<Patient, 'patient_id'>) => {
         try {
@@ -581,7 +585,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         loading, isSyncing, error,
         notification, hideNotification, showNotification,
         isSidebarOpen, toggleSidebar,
-        clinicLogo, clinicStamp, setClinicLogo, setClinicStamp,
+        clinicLogo: settings.logo || null,
+        clinicStamp: settings.stamp || null,
+        clinicSignature: settings.signature || null,
+        settings, updateSettings,
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

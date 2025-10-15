@@ -1,40 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { PhotoIcon, TrashIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { Role } from '../types';
+import { PhotoIcon, LinkIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 const Settings: React.FC = () => {
-    const { user, clinicLogo, setClinicLogo, clinicStamp, setClinicStamp, showNotification } = useApp();
+    const { user, settings, updateSettings, showNotification } = useApp();
+    const [logo, setLogo] = useState('');
+    const [stamp, setStamp] = useState('');
+    const [signature, setSignature] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (base64: string | null) => void) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            // Basic validation for file type and size
-            if (!file.type.startsWith('image/')) {
-                showNotification('يرجى اختيار ملف صورة صالح.', 'error');
-                return;
-            }
-            if (file.size > 2 * 1024 * 1024) { // 2MB limit
-                showNotification('حجم الصورة كبير جداً. الحد الأقصى 2 ميجابايت.', 'error');
-                return;
-            }
+    useEffect(() => {
+        setLogo(settings.logo || '');
+        setStamp(settings.stamp || '');
+        setSignature(settings.signature || '');
+    }, [settings]);
 
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setter(reader.result as string);
-                showNotification('تم رفع الصورة بنجاح.', 'success');
-            };
-            reader.onerror = () => {
-                showNotification('حدث خطأ أثناء قراءة الملف.', 'error');
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleRemoveImage = (setter: (base64: string | null) => void, type: string) => {
-        if (window.confirm(`هل أنت متأكد من إزالة ${type}؟`)) {
-            setter(null);
-            showNotification(`تمت إزالة ${type} بنجاح.`, 'success');
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await updateSettings({ logo, stamp, signature });
+        } catch (error) {
+            console.error("Failed to save settings:", error);
+            showNotification('حدث خطأ أثناء حفظ الإعدادات', 'error');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -42,61 +32,80 @@ const Settings: React.FC = () => {
         return (
             <div className="text-center p-8">
                 <h1 className="text-2xl font-bold text-red-600">وصول غير مصرح به</h1>
-                <p className="text-gray-600">هذه الصفحة متاحة للمديرين فقط.</p>
+                <p className="text-gray-600 dark:text-gray-400">هذه الصفحة متاحة للمديرين فقط.</p>
             </div>
         );
     }
 
-    const ImageUploader: React.FC<{
+    const ImageUrlInput: React.FC<{
         title: string;
-        imageSrc: string | null;
-        onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-        onRemove: () => void;
-    }> = ({ title, imageSrc, onFileChange, onRemove }) => (
+        imageUrl: string;
+        setImageUrl: (url: string) => void;
+    }> = ({ title, imageUrl, setImageUrl }) => (
         <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-lg">
             <h2 className="text-xl font-semibold text-teal-800 dark:text-teal-300 mb-4">{title}</h2>
-            <div className="w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center mb-4 bg-white dark:bg-gray-800">
-                {imageSrc ? (
-                    <img src={imageSrc} alt={title} className="max-h-full max-w-full object-contain p-2" />
+            
+            <div className="w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center bg-white dark:bg-gray-800 mb-4 overflow-hidden">
+                {imageUrl ? (
+                    <img src={imageUrl} alt={title} className="max-w-full max-h-full object-contain" />
                 ) : (
                     <div className="text-center text-gray-400">
-                        <PhotoIcon className="h-16 w-16 mx-auto" />
-                        <p>لا توجد صورة حالياً</p>
+                        <PhotoIcon className="h-12 w-12 mx-auto" />
+                        <p>معاينة الصورة</p>
                     </div>
                 )}
             </div>
-            <div className="flex items-center gap-4">
-                <label className="flex-1 cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-center flex items-center justify-center">
-                    <CloudArrowUpIcon className="h-5 w-5 ml-2" />
-                    <span>اختر صورة...</span>
-                    <input type="file" accept="image/png, image/jpeg, image/svg+xml" className="hidden" onChange={onFileChange} />
-                </label>
-                {imageSrc && (
-                    <button onClick={onRemove} className="flex items-center bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">
-                        <TrashIcon className="h-5 w-5 ml-2" />
-                        <span>إزالة</span>
-                    </button>
-                )}
+
+            <div>
+                <label className="sr-only" htmlFor={title.replace(/\s+/g, '-')}>{title}</label>
+                <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                        <LinkIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    </div>
+                    <input
+                        id={title.replace(/\s+/g, '-')}
+                        type="url"
+                        value={imageUrl}
+                        onChange={(e) => setImageUrl(e.target.value)}
+                        placeholder="أدخل رابط الصورة هنا..."
+                        className="w-full p-2 pr-10 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+                    />
+                </div>
             </div>
         </div>
     );
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
-            <h1 className="text-2xl font-bold text-teal-800 dark:text-teal-300 mb-6 border-b pb-4 dark:border-gray-700">الإعدادات العامة</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <ImageUploader
-                    title="شعار المستوصف"
-                    imageSrc={clinicLogo}
-                    onFileChange={(e) => handleFileChange(e, setClinicLogo)}
-                    onRemove={() => handleRemoveImage(setClinicLogo, 'الشعار')}
-                />
-                <ImageUploader
-                    title="ختم المستوصف"
-                    imageSrc={clinicStamp}
-                    onFileChange={(e) => handleFileChange(e, setClinicStamp)}
-                    onRemove={() => handleRemoveImage(setClinicStamp, 'الختم')}
-                />
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md max-w-4xl mx-auto">
+            <h1 className="text-2xl font-bold text-teal-800 dark:text-teal-300 mb-6 border-b dark:border-gray-700 pb-4">إعدادات النظام</h1>
+            
+            <div className="space-y-8">
+                <ImageUrlInput title="شعار المستوصف (Logo)" imageUrl={logo} setImageUrl={setLogo} />
+                <ImageUrlInput title="ختم المستوصف (Stamp)" imageUrl={stamp} setImageUrl={setStamp} />
+                <ImageUrlInput title="التوقيع العام (Signature)" imageUrl={signature} setImageUrl={setSignature} />
+            </div>
+
+            <div className="mt-8 flex justify-end">
+                <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="flex items-center justify-center bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-gray-400 min-w-[150px]"
+                >
+                    {isSaving ? (
+                        <>
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>جاري الحفظ...</span>
+                        </>
+                    ) : (
+                        <>
+                            <CheckCircleIcon className="h-5 w-5 ml-2" />
+                            <span>حفظ الإعدادات</span>
+                        </>
+                    )}
+                </button>
             </div>
         </div>
     );
