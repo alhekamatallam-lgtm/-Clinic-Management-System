@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import StatCard from '../ui/StatCard';
 import { UserGroupIcon, ClockIcon, CalendarDaysIcon, PlusIcon, MagnifyingGlassIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/solid';
-import { VisitStatus, VisitType, Patient, Visit } from '../../types';
+import { VisitStatus, VisitType, Patient, Visit, Role } from '../../types';
 import Modal from '../ui/Modal';
 
 // Helper to get 'YYYY-MM-DD' from a Date object, respecting local timezone.
@@ -14,7 +14,7 @@ const getLocalYYYYMMDD = (date: Date): string => {
 };
 
 const ReceptionistDashboard: React.FC = () => {
-    const { patients, visits, clinics, diagnoses, addPatient, addVisit, isAddingVisit, addManualRevenue, isAdding, showNotification } = useApp();
+    const { user, patients, visits, clinics, diagnoses, addPatient, addVisit, isAddingVisit, addManualRevenue, isAdding, showNotification } = useApp();
     const [isAddPatientModalOpen, setAddPatientModalOpen] = useState(false);
     const [isAddVisitModalOpen, setAddVisitModalOpen] = useState(false);
     const [isPastDiagnosesModalOpen, setPastDiagnosesModalOpen] = useState(false);
@@ -185,10 +185,12 @@ const ReceptionistDashboard: React.FC = () => {
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-teal-800 dark:text-teal-300">بحث عن مريض / إضافة زيارة</h2>
-                    <button onClick={() => setAddPatientModalOpen(true)} className="flex items-center bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors">
-                        <PlusIcon className="h-5 w-5 ml-2"/>
-                        إضافة مريض جديد
-                    </button>
+                    {user && user.role !== Role.Doctor && (
+                        <button onClick={() => setAddPatientModalOpen(true)} className="flex items-center bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors">
+                            <PlusIcon className="h-5 w-5 ml-2"/>
+                            إضافة مريض جديد
+                        </button>
+                    )}
                 </div>
                 <div className="relative mb-4">
                      <span className="absolute inset-y-0 right-0 flex items-center pr-3">

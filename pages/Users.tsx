@@ -62,7 +62,10 @@ const Users: React.FC = () => {
             : `لن يتمكن المستخدم من تسجيل الدخول.`;
 
         if (window.confirm(`هل أنت متأكد من ${actionText} حساب المستخدم "${user.Name || user.username}"؟ ${message}`)) {
-            updateUser(user.user_id, { status: newStatus });
+            // To prevent the backend from clearing other fields on a partial update,
+            // we send the entire user object with the modified status.
+            const { user_id, ...userDataToSend } = user;
+            updateUser(user.user_id, { ...userDataToSend, status: newStatus });
         }
     };
 

@@ -17,7 +17,7 @@ const Dashboard: React.FC = () => {
             <>
                 <DoctorDashboard />
                 <div className="mt-8">
-                    <h2 className="text-2xl font-bold text-teal-800 dark:text-teal-300 mb-4">تسجيل المرضى والزيارات</h2>
+                    <h2 className="text-2xl font-bold text-teal-800 dark:text-teal-300 mb-4">بحث عن مريض وتسجيل زيارة</h2>
                     <ReceptionistDashboard />
                 </div>
             </>
