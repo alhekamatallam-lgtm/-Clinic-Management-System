@@ -58,7 +58,7 @@ export interface User {
   clinic?: string;
   doctor_id?: number;
   doctor_name?: string;
-  status: 'نشط' | 'معطل';
+  status: 'مفعل' | 'معطل';
 }
 
 export interface Clinic {
@@ -93,7 +93,7 @@ export interface Doctor {
   phone: string;
   email: string;
   shift: 'صباحي' | 'مسائي';
-  status: 'نشط' | 'غير نشط';
+  status: 'مفعل' | 'غير نشط';
   signature?: string;
 }
 

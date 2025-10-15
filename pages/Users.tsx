@@ -13,7 +13,7 @@ const Users: React.FC = () => {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     
     // State for forms
-    const initialFormState: Partial<User> = { Name: '', role: Role.Reception, username: '', password: '', clinic_id: undefined, doctor_id: undefined, doctor_name: undefined, status: 'نشط' };
+    const initialFormState: Partial<User> = { Name: '', role: Role.Reception, username: '', password: '', clinic_id: undefined, doctor_id: undefined, doctor_name: undefined, status: 'مفعل' };
     const [formData, setFormData] = useState<Partial<User>>(initialFormState);
     const [passwordData, setPasswordData] = useState({ password: '', confirmPassword: '' });
     const [selectedDoctorForForm, setSelectedDoctorForForm] = useState<Doctor | null>(null);
@@ -55,9 +55,9 @@ const Users: React.FC = () => {
     };
 
     const handleToggleStatus = (user: User) => {
-        const newStatus = user.status === 'نشط' ? 'معطل' : 'نشط';
-        const actionText = newStatus === 'نشط' ? 'تفعيل' : 'تعطيل';
-        const message = newStatus === 'نشط' 
+        const newStatus = user.status === 'مفعل' ? 'معطل' : 'مفعل';
+        const actionText = newStatus === 'مفعل' ? 'تفعيل' : 'تعطيل';
+        const message = newStatus === 'مفعل' 
             ? `سيتمكن المستخدم من تسجيل الدخول مرة أخرى.`
             : `لن يتمكن المستخدم من تسجيل الدخول.`;
 
@@ -174,10 +174,24 @@ const Users: React.FC = () => {
         handleCloseModals();
     };
 
-    const getStatusChip = (status: 'نشط' | 'معطل' | undefined) => {
+    const getStatusChip = (status: 'مفعل' | 'معطل' | undefined) => {
         if (!status) return null;
-        const color = status === 'نشط' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-        return <span className={`px-2 py-1 text-xs font-semibold rounded-full ${color}`}>{status}</span>;
+
+        if (status.trim() === 'مفعل') {
+            return (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <CheckCircleIcon className="h-4 w-4 ml-1 text-green-500" />
+                    مفعل
+                </span>
+            );
+        } else { // 'معطل'
+            return (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                    <NoSymbolIcon className="h-4 w-4 ml-1 text-red-500" />
+                    معطل
+                </span>
+            );
+        }
     };
 
     const isDoctorForm = formData.role === Role.Doctor;
@@ -225,8 +239,8 @@ const Users: React.FC = () => {
                                             <button onClick={() => handleOpenPasswordModal(userRow)} className="p-2 text-gray-600 hover:bg-gray-200 rounded-full dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" title="تغيير كلمة المرور" disabled={isSelf}>
                                                 <KeyIcon className="h-5 w-5" />
                                             </button>
-                                            <button onClick={() => handleToggleStatus(userRow)} className={`p-2 rounded-full ${userRow.status === 'نشط' ? 'text-red-600 hover:bg-red-100 dark:hover:bg-red-900' : 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900'} disabled:opacity-50 disabled:cursor-not-allowed`} title={userRow.status === 'نشط' ? 'تعطيل' : 'تفعيل'} disabled={isSelf}>
-                                                {userRow.status === 'نشط' ? <NoSymbolIcon className="h-5 w-5" /> : <CheckCircleIcon className="h-5 w-5" />}
+                                            <button onClick={() => handleToggleStatus(userRow)} className={`p-2 rounded-full ${userRow.status === 'مفعل' ? 'text-red-600 hover:bg-red-100 dark:hover:bg-red-900' : 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900'} disabled:opacity-50 disabled:cursor-not-allowed`} title={userRow.status === 'مفعل' ? 'تعطيل' : 'تفعيل'} disabled={isSelf}>
+                                                {userRow.status === 'مفعل' ? <NoSymbolIcon className="h-5 w-5" /> : <CheckCircleIcon className="h-5 w-5" />}
                                             </button>
                                         </td>
                                     )}

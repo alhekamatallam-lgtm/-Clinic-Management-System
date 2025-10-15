@@ -15,7 +15,7 @@ const Doctors: React.FC = () => {
         phone: '',
         email: '',
         shift: 'صباحي',
-        status: 'نشط',
+        status: 'مفعل',
         signature: '',
     };
     const [formData, setFormData] = useState<Partial<Doctor>>(initialFormState);
@@ -56,8 +56,8 @@ const Doctors: React.FC = () => {
 
     const getClinicName = (id: number) => clinics.find(c => c.clinic_id === id)?.clinic_name || 'N/A';
     
-    const getStatusChip = (status: 'نشط' | 'غير نشط') => {
-        const color = status === 'نشط' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+    const getStatusChip = (status: 'مفعل' | 'غير نشط') => {
+        const color = status === 'مفعل' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
         return <span className={`px-2 py-1 text-xs font-semibold rounded-full ${color}`}>{status}</span>;
     };
 
@@ -139,7 +139,7 @@ const Doctors: React.FC = () => {
                          <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">الحالة</label>
                             <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border rounded bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
-                                <option value="نشط">نشط</option>
+                                <option value="مفعل">مفعل</option>
                                 <option value="غير نشط">غير نشط</option>
                             </select>
                         </div>

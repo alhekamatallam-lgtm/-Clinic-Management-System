@@ -498,7 +498,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     
     const addUser = async (userData: Omit<User, 'user_id'>) => {
         try {
-            const dataToSend = { ...userData, status: 'نشط' };
+            const dataToSend = { ...userData, status: 'مفعل' };
             const result = await postData('Users', dataToSend);
             if (result.success) {
                 showNotification(result.message || 'تمت إضافة المستخدم بنجاح', 'success');
