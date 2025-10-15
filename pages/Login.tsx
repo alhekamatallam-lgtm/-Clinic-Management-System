@@ -7,7 +7,7 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useApp();
+  const { login, clinicLogo } = useApp();
 
   useEffect(() => {
     const savedUsername = localStorage.getItem('rememberedUsername');
@@ -20,9 +20,9 @@ const Login: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = login(username, password, rememberMe);
-    if (!success) {
-      setError('اسم المستخدم أو كلمة المرور غير صحيحة.');
+    const result = login(username, password, rememberMe);
+    if (!result.success) {
+      setError(result.error || 'حدث خطأ غير متوقع.');
     }
   };
 
@@ -30,7 +30,11 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-400 to-blue-500 p-4">
       <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 space-y-8">
         <div className="text-center">
-            <UserGroupIcon className="mx-auto h-16 w-16 text-teal-500"/>
+            {clinicLogo ? (
+                <img src={clinicLogo} alt="شعار المستوصف" className="mx-auto h-24 w-auto object-contain" />
+            ) : (
+                <UserGroupIcon className="mx-auto h-16 w-16 text-teal-500"/>
+            )}
           <h2 className="mt-6 text-3xl font-extrabold text-teal-800 dark:text-teal-300">
             مستوصف عيادات الراجحي التكافلي
           </h2>

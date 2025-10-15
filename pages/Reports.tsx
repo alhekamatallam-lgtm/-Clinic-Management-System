@@ -4,7 +4,7 @@ import { FunnelIcon, XMarkIcon, PrinterIcon } from '@heroicons/react/24/solid';
 import { VisitType } from '../types';
 
 const Reports: React.FC = () => {
-    const { revenues, clinics, doctors } = useApp();
+    const { revenues, clinics, doctors, clinicLogo } = useApp();
     
     // State for filters
     const [patientNameFilter, setPatientNameFilter] = useState<string>('');
@@ -88,7 +88,11 @@ const Reports: React.FC = () => {
                     طباعة
                 </button>
             </div>
-             <h1 className="text-2xl font-bold text-teal-800 dark:text-teal-300 mb-6 hidden print:block text-center">تقرير الإيرادات</h1>
+             <div className="hidden print:block text-center mb-6">
+                {clinicLogo && <img src={clinicLogo} alt="شعار المستوصف" className="h-20 w-auto mx-auto mb-4 object-contain" />}
+                <h1 className="text-2xl font-bold text-black">تقرير الإيرادات</h1>
+                {(startDate || endDate) && <p className="text-lg text-gray-700">للفترة من {startDate || '...'} إلى {endDate || '...'}</p>}
+             </div>
             
             {/* Filters Section */}
             <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg mb-6 flex flex-wrap items-center gap-4 no-print">

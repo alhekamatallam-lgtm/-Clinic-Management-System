@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect, ReactNode, useRe
 import { Patient, Visit, Diagnosis, User, Clinic, Revenue, Role, View, VisitStatus, VisitType, Doctor } from '../types';
 
 // The API URL provided by the user.
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyG35J3sYxH19yFpw0JouX6w01LGC_Q-befaIDBVo4G7tfpdizL9j7sN3rrB9Gqxqw5/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfeigTybRITqPkWkc7IU1NJ79jz8ulWQtIOxttTrCwcaZRS-mThsbf9k_1LEiOR6nG/exec"; 
 
 // Backend column mapping, used to parse array responses from the API
 const COLUMN_MAPPING = {
@@ -10,8 +10,8 @@ const COLUMN_MAPPING = {
     Visits: ['visit_id','patient_id','clinic_id','visit_date','queue_number','status','visit_type'],
     Diagnosis: ['diagnosis_id','visit_id','doctor','diagnosis','prescription','labs_needed','notes'],
     Revenues: ['revenue_id','visit_id','patient_id','patient_name','clinic_id','amount','date','type','notes'],
-    Users: ['user_id', 'name', 'username', 'password', 'role', 'clinic_id', 'doctor_id', 'doctor_name'],
-    Doctors: ['doctor_id', 'doctor_name', 'specialty', 'clinic_id', 'phone', 'email', 'shift', 'status'],
+    Users: ['user_id', 'username', 'password', 'role', 'clinic_id', 'clinic', 'doctor_id', 'doctor_name', 'Name', 'status'],
+    Doctors: ['doctor_id', 'doctor_name', 'specialty', 'clinic_id', 'phone', 'email', 'shift', 'status', 'signature'],
     Clinics: ['clinic_id', 'clinic_name', 'doctor_id', 'doctor_name', 'max_patients_per_day', 'price_first_visit', 'price_followup', 'shift', 'notes'],
 };
 
@@ -58,7 +58,7 @@ const mapRowToObject = <T,>(row: any[], sheetName: keyof typeof COLUMN_MAPPING):
 
 interface AppContextType {
     user: User | null;
-    login: (username: string, password?: string, rememberMe?: boolean) => boolean;
+    login: (username: string, password?: string, rememberMe?: boolean) => { success: boolean, error?: string };
     logout: () => void;
     currentView: View;
     setView: (view: View) => void;
@@ -77,17 +77,21 @@ interface AppContextType {
     updateVisitStatus: (visitId: number, status: VisitStatus) => void; 
     addUser: (user: Omit<User, 'user_id'>) => Promise<void>;
     updateUser: (userId: number, userData: Partial<Omit<User, 'user_id'>>) => Promise<void>;
+    deleteUser: (userId: number) => Promise<void>;
     isAdding: boolean;
     isAddingVisit: boolean;
     loading: boolean;
     isSyncing: boolean;
     error: string | null;
     notification: { message: string; type: 'success' | 'error' } | null;
-    // FIX: Expose showNotification function to the context.
     showNotification: (message: string, type?: 'success' | 'error') => void;
     hideNotification: () => void;
     isSidebarOpen: boolean;
     toggleSidebar: () => void;
+    clinicLogo: string | null;
+    clinicStamp: string | null;
+    setClinicLogo: (logoBase64: string | null) => void;
+    setClinicStamp: (stampBase64: string | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -106,6 +110,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const [currentView, setCurrentView] = useState<View>('dashboard');
     const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
+
+    const [clinicLogo, setClinicLogoState] = useState<string | null>(null);
+    const [clinicStamp, setClinicStampState] = useState<string | null>(null);
 
     const toggleSidebar = () => {
         setIsSidebarOpen(prev => !prev);
@@ -207,9 +214,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     };
 
-    // Fetch initial data on component mount
+    // Fetch initial data and load settings from localStorage
     useEffect(() => {
         fetchData();
+        const storedLogo = localStorage.getItem('clinicLogo');
+        if (storedLogo) setClinicLogoState(storedLogo);
+        const storedStamp = localStorage.getItem('clinicStamp');
+        if (storedStamp) setClinicStampState(storedStamp);
     }, []);
 
     // Effect to handle responsive sidebar state
@@ -228,8 +239,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const postData = async (sheet: string, data: object) => {
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
-            // By removing the explicit Content-Type header, we let the browser set it automatically.
-            // This is a common fix for "Failed to fetch" CORS-related issues with Google Apps Script.
             body: JSON.stringify({ sheet, ...data }),
         });
         
@@ -249,24 +258,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
 
-    const login = (username: string, password?: string, rememberMe: boolean = false): boolean => {
-        const foundUser = users.find(u => u.username === username && u.password === password);
-        if (foundUser) {
-            const { password: _, ...userToStore } = foundUser; // Exclude password from stored object
-            setUser(userToStore);
-            localStorage.setItem('clinicUser', JSON.stringify(userToStore));
-            
-            if (rememberMe) {
-                localStorage.setItem('rememberedUsername', username);
-            } else {
-                localStorage.removeItem('rememberedUsername');
-            }
+    const login = (username: string, password?: string, rememberMe: boolean = false): { success: boolean; error?: string } => {
+        const foundUserByCredentials = users.find(u => u.username === username && u.password === password);
 
-            setView('dashboard');
-            showNotification('تم تسجيل الدخول بنجاح', 'success');
-            return true;
+        if (!foundUserByCredentials) {
+            return { success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة.' };
         }
-        return false;
+
+        if (foundUserByCredentials.status === 'معطل') {
+            return { success: false, error: 'تم تعطيل الحساب برجاء مراجعة ادارة المستوصف' };
+        }
+
+        const { password: _, ...userToStore } = foundUserByCredentials;
+        setUser(userToStore);
+        localStorage.setItem('clinicUser', JSON.stringify(userToStore));
+        
+        if (rememberMe) {
+            localStorage.setItem('rememberedUsername', username);
+        } else {
+            localStorage.removeItem('rememberedUsername');
+        }
+
+        setView('dashboard');
+        showNotification('تم تسجيل الدخول بنجاح', 'success');
+        return { success: true };
     };
 
     const logout = () => {
@@ -276,10 +291,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const setView = (view: View) => {
         setCurrentView(view);
-        if (window.innerWidth < 1024) { // Close sidebar on mobile when changing view
+        if (window.innerWidth < 1024) {
             setIsSidebarOpen(false);
         }
-        fetchData(true); // Use background refresh when changing views
+        fetchData(true);
+    };
+
+    const setClinicLogo = (logoBase64: string | null) => {
+        if (logoBase64) {
+            localStorage.setItem('clinicLogo', logoBase64);
+        } else {
+            localStorage.removeItem('clinicLogo');
+        }
+        setClinicLogoState(logoBase64);
+    };
+
+    const setClinicStamp = (stampBase64: string | null) => {
+        if (stampBase64) {
+            localStorage.setItem('clinicStamp', stampBase64);
+        } else {
+            localStorage.removeItem('clinicStamp');
+        }
+        setClinicStampState(stampBase64);
     };
 
     const addPatient = async (patientData: Omit<Patient, 'patient_id'>) => {
@@ -298,7 +331,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     const addManualRevenue = async (revenueData: Omit<Revenue, 'revenue_id'>): Promise<boolean> => {
-        // Input Validation
         if (!revenueData.patient_name || !revenueData.patient_name.trim()) {
             showNotification('يرجى إدخال اسم المريض.', 'error');
             return false;
@@ -311,7 +343,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             showNotification('يرجى اختيار عيادة صحيحة.', 'error');
             return false;
         }
-        if (!revenueData.amount && revenueData.amount !== 0) { // Allow 0 amount
+        if (!revenueData.amount && revenueData.amount !== 0) {
             showNotification('يرجى إدخال مبلغ صحيح.', 'error');
             return false;
         }
@@ -330,11 +362,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         try {
             const dataToSend = {
                 ...revenueData,
-                visit_id: revenueData.visit_id ?? 0, // Use provided visit_id or default to 0
+                visit_id: revenueData.visit_id ?? 0,
             };
             const result = await postData('Revenues', dataToSend);
             if (result.success) {
-                 // Don't show notification here, let the calling function do it for context
                 success = true;
                 await fetchData(true);
             } else {
@@ -354,20 +385,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setIsAddingVisit(true);
     
         try {
-            // Step 1: Fetch fresh visit data to ensure queue number is correct.
             let syncResponse = await fetch(SCRIPT_URL, { cache: 'no-cache' });
             if (!syncResponse.ok) throw new Error(`فشل مزامنة البيانات قبل الإضافة (الكود: ${syncResponse.status})`);
             
             let syncResult = await syncResponse.json();
             if (!syncResult.success) throw new Error(syncResult.message || "فشلت مزامنة البيانات.");
             
-            // Process dates from server to ensure they are in local YYYY-MM-DD format for comparison
             const currentVisits: Visit[] = (syncResult.data.Visits || []).map((v: any) => ({
                 ...v,
                 visit_date: formatDateToLocalYYYYMMDD(v.visit_date)
             }));
             
-            // Step 2: Calculate the next queue number and get the correct LOCAL date.
             const today = formatDateToLocalYYYYMMDD(new Date());
 
             const visitsForClinicToday = currentVisits.filter(v => 
@@ -375,7 +403,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             );
             const newQueueNumber = visitsForClinicToday.length + 1;
     
-            // Step 3: Prepare and send the visit data.
             const visitToSend = {
                 patient_id: visitData.patient_id,
                 clinic_id: visitData.clinic_id,
@@ -390,17 +417,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                  throw new Error(visitResult.message || 'فشلت إضافة الزيارة');
             }
             
-            // POST was successful. The server might not have returned the data, so we try to find the visit.
-            
-            // First, check if the data was returned (the ideal case).
             if (visitResult.data) {
                 const newVisit = mapRowToObject<Visit>(visitResult.data, 'Visits');
-                await fetchData(true); // Update global state
+                await fetchData(true);
                 return newVisit;
             }
 
-            // If not returned, re-fetch all data and search for the visit we just created.
-            // Using a small delay to handle potential server-side replication lag.
             await new Promise(resolve => setTimeout(resolve, 500));
 
             syncResponse = await fetch(SCRIPT_URL, { cache: 'no-cache' });
@@ -423,15 +445,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             );
             
             if (createdVisit) {
-                await fetchData(true); // Sync global state with what we just fetched.
+                await fetchData(true);
                 return createdVisit;
             } else {
-                // Final fallback. The visit was likely added but we can't confirm.
                 throw new Error('تمت إضافة الزيارة، ولكن تعذر تأكيدها فوراً. يرجى التحقق من قائمة الزيارات.');
             }
         } catch (e: any) {
             console.error("Failed to add visit:", e);
-            throw e; // Re-throw the caught error
+            throw e;
         } finally {
             setIsAddingVisit(false);
         }
@@ -463,9 +484,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
             const result = await postData('Diagnosis', dataToSend);
             if (result.success) {
-                // After successfully adding the diagnosis, update the visit status to "Completed".
                 await updateVisit(diagnosisData.visit_id, { status: VisitStatus.Completed });
-
                 showNotification(result.message || 'تم حفظ التشخيص بنجاح', 'success');
                 await fetchData(true);
             } else {
@@ -479,7 +498,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     
     const addUser = async (userData: Omit<User, 'user_id'>) => {
         try {
-            const result = await postData('Users', userData);
+            const dataToSend = { ...userData, status: 'نشط' };
+            const result = await postData('Users', dataToSend);
             if (result.success) {
                 showNotification(result.message || 'تمت إضافة المستخدم بنجاح', 'success');
                 await fetchData(true);
@@ -527,9 +547,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     };
 
+    const deleteUser = async (userId: number) => {
+        try {
+            const dataToSend = {
+                action: 'delete',
+                user_id: userId
+            };
+            const result = await postData('Users', dataToSend);
+            if (result.success) {
+                showNotification(result.message || 'تم حذف المستخدم بنجاح', 'success');
+                await fetchData(true);
+            } else {
+                 showNotification(result.message || 'فشل حذف المستخدم', 'error');
+            }
+        } catch (e: any) {
+            showNotification(e.message, 'error');
+            console.error("Failed to delete user:", e);
+        }
+    };
+
     const updateVisitStatus = (visitId: number, status: VisitStatus) => {
-        // This is a purely optimistic UI update for immediate feedback (e.g., when a doctor opens a diagnosis modal).
-        // The final, correct state will be established by fetchData.
         setVisits(prevVisits =>
             prevVisits.map(v => v.visit_id === visitId ? { ...v, status } : v)
         );
@@ -539,11 +576,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         user, login, logout, currentView, setView,
         patients, visits, diagnoses, users, clinics, revenues, doctors,
         addPatient, addVisit, addDiagnosis, addManualRevenue, updateVisitStatus,
-        addUser, updateUser, addDoctor,
+        addUser, updateUser, addDoctor, deleteUser,
         isAdding, isAddingVisit,
         loading, isSyncing, error,
         notification, hideNotification, showNotification,
         isSidebarOpen, toggleSidebar,
+        clinicLogo, clinicStamp, setClinicLogo, setClinicStamp,
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

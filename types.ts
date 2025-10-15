@@ -1,5 +1,8 @@
+
+
+// FIX: The 'Role' enum was used in multiple places but not defined. It is now defined and exported.
 export enum Role {
-  Reception = 'receptionist',
+  Reception = 'reception',
   Doctor = 'doctor',
   Manager = 'manager',
 }
@@ -47,13 +50,15 @@ export interface Diagnosis {
 
 export interface User {
   user_id: number;
-  name: string;
+  Name: string;
   username: string;
   password?: string; // Should not be exposed in most contexts
   role: Role;
   clinic_id?: number;
+  clinic?: string;
   doctor_id?: number;
   doctor_name?: string;
+  status: 'نشط' | 'معطل';
 }
 
 export interface Clinic {
@@ -89,6 +94,7 @@ export interface Doctor {
   email: string;
   shift: 'صباحي' | 'مسائي';
   status: 'نشط' | 'غير نشط';
+  signature?: string;
 }
 
-export type View = 'dashboard' | 'patients' | 'visits' | 'diagnosis' | 'users' | 'clinics' | 'reports' | 'queue' | 'manual-revenue' | 'revenues' | 'doctors' | 'medical-report' | 'daily-clinic-report';
+export type View = 'dashboard' | 'patients' | 'visits' | 'diagnosis' | 'users' | 'clinics' | 'reports' | 'queue' | 'manual-revenue' | 'revenues' | 'doctors' | 'medical-report' | 'daily-clinic-report' | 'settings';

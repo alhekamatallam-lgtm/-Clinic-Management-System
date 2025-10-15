@@ -4,7 +4,7 @@ import { ArrowRightOnRectangleIcon, UserCircleIcon, ArrowPathIcon, Bars3Icon } f
 import { Role } from '../../types';
 
 const Header: React.FC = () => {
-  const { user, logout, isSyncing, toggleSidebar } = useApp();
+  const { user, logout, isSyncing, toggleSidebar, clinicLogo } = useApp();
   
   const getRoleName = (role: Role) => {
     switch(role) {
@@ -25,7 +25,10 @@ const Header: React.FC = () => {
             >
                 <Bars3Icon className="h-6 w-6" />
             </button>
-            <h1 className="text-xl font-semibold text-teal-800 dark:text-teal-300 hidden sm:block">مرحباً, {user?.name || user?.username}</h1>
+            {clinicLogo && (
+                <img src={clinicLogo} alt="شعار المستوصف" className="h-10 w-auto mr-4 object-contain" />
+            )}
+            <h1 className="text-xl font-semibold text-teal-800 dark:text-teal-300 hidden sm:block">مرحباً, {user?.Name || user?.username}</h1>
             {isSyncing && (
                 <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mr-4" title="جاري مزامنة البيانات...">
                     <ArrowPathIcon className="h-4 w-4 animate-spin text-teal-500" />
@@ -35,7 +38,7 @@ const Header: React.FC = () => {
         </div>
       <div className="flex items-center">
         <div className="text-right ml-4">
-          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{user?.name || user?.username}</p>
+          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{user?.Name || user?.username}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400">{getRoleName(user!.role)}</p>
         </div>
         <UserCircleIcon className="h-10 w-10 text-gray-500 dark:text-gray-400" />

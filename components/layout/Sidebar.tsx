@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { Role, View } from '../../types';
-import { ChartBarIcon, UserGroupIcon, ClipboardDocumentListIcon, UsersIcon, BuildingOffice2Icon, DocumentChartBarIcon, PresentationChartLineIcon, BeakerIcon, QueueListIcon, CurrencyDollarIcon, HeartIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChartBarIcon, UserGroupIcon, ClipboardDocumentListIcon, UsersIcon, BuildingOffice2Icon, DocumentChartBarIcon, PresentationChartLineIcon, BeakerIcon, QueueListIcon, CurrencyDollarIcon, HeartIcon, ChevronDownIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 
 const Sidebar: React.FC = () => {
     const { user, currentView, setView, isSidebarOpen } = useApp();
@@ -37,6 +37,7 @@ const Sidebar: React.FC = () => {
         { view: 'users', label: 'المستخدمين', icon: UsersIcon, roles: [Role.Manager] },
         { view: 'clinics', label: 'العيادات', icon: BuildingOffice2Icon, roles: [Role.Manager] },
         { view: 'doctors', label: 'الأطباء', icon: HeartIcon, roles: [Role.Manager] },
+        { view: 'settings', label: 'الإعدادات', icon: Cog6ToothIcon, roles: [Role.Manager] },
     ];
 
     const filteredNavItems = navItems.filter(item => item.roles.includes(user.role));

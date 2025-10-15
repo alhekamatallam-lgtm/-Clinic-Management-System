@@ -15,6 +15,7 @@ import Revenues from './pages/Revenues';
 import Doctors from './pages/Doctors';
 import MedicalReport from './pages/MedicalReport';
 import DailyClinicReport from './pages/DailyClinicReport';
+import Settings from './pages/Settings';
 
 const App: React.FC = () => {
   const { user, currentView, loading, error } = useApp();
@@ -47,6 +48,8 @@ const App: React.FC = () => {
         return <ManualRevenue />;
       case 'revenues':
         return <Revenues />;
+      case 'settings':
+        return <Settings />;
       default:
         return <Dashboard />;
     }

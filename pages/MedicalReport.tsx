@@ -1,17 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { FunnelIcon, XMarkIcon, PrinterIcon, DocumentTextIcon, ChartBarIcon } from '@heroicons/react/24/solid';
-import { Visit, Patient, Clinic, Diagnosis } from '../types';
+import { Visit, Patient, Clinic, Diagnosis, Doctor, Role } from '../types';
 
 interface ReportData {
     visit: Visit;
     patient: Patient;
     clinic: Clinic;
     diagnosis: Diagnosis;
+    doctor: Doctor;
 }
 
 const MedicalReport: React.FC = () => {
-    const { visits, patients, clinics, diagnoses } = useApp();
+    const { user, users, visits, patients, clinics, diagnoses, doctors, clinicLogo, clinicStamp } = useApp();
     
     // State for filters
     const [patientNameFilter, setPatientNameFilter] = useState<string>('');
@@ -30,6 +31,11 @@ const MedicalReport: React.FC = () => {
     const filteredVisits = useMemo(() => {
         let tempVisits = [...visitsWithDiagnosis];
 
+        // Role-based filtering for doctors
+        if (user?.role === Role.Doctor && user.clinic_id) {
+            tempVisits = tempVisits.filter(visit => visit.clinic_id === user.clinic_id);
+        }
+
         // 1. Patient Name filter
         if (patientNameFilter) {
             const patientIds = patients
@@ -38,8 +44,8 @@ const MedicalReport: React.FC = () => {
             tempVisits = tempVisits.filter(v => patientIds.includes(v.patient_id));
         }
 
-        // 2. Clinic filter
-        if (clinicFilter !== 'all') {
+        // 2. Clinic filter (only for non-doctors)
+        if (user?.role !== Role.Doctor && clinicFilter !== 'all') {
             tempVisits = tempVisits.filter(v => v.clinic_id === parseInt(clinicFilter));
         }
 
@@ -53,7 +59,7 @@ const MedicalReport: React.FC = () => {
         
         return tempVisits.sort((a, b) => new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime());
 
-    }, [visitsWithDiagnosis, patients, patientNameFilter, clinicFilter, startDate, endDate]);
+    }, [visitsWithDiagnosis, patients, patientNameFilter, clinicFilter, startDate, endDate, user]);
 
     const resetFilters = () => {
         setPatientNameFilter('');
@@ -67,8 +73,17 @@ const MedicalReport: React.FC = () => {
         const clinic = clinics.find(c => c.clinic_id === visit.clinic_id);
         const diagnosis = diagnoses.find(d => d.visit_id === visit.visit_id);
 
-        if (patient && clinic && diagnosis) {
-            setReportData({ visit, patient, clinic, diagnosis });
+        if (!diagnosis) return;
+
+        const diagnosingUser = users.find(u => u.username === diagnosis.doctor);
+        if (!diagnosingUser || !diagnosingUser.doctor_id) return;
+        
+        const doctor = doctors.find(doc => doc.doctor_id === diagnosingUser.doctor_id);
+
+        if (patient && clinic && diagnosis && doctor) {
+            setReportData({ visit, patient, clinic, diagnosis, doctor });
+        } else {
+            alert('لم يتم العثور على كافة البيانات المطلوبة لإنشاء التقرير.');
         }
     };
 
@@ -78,7 +93,14 @@ const MedicalReport: React.FC = () => {
 
     const getPatientName = (id: number) => patients.find(p => p.patient_id === id)?.name || 'N/A';
     const getClinicName = (id: number) => clinics.find(c => c.clinic_id === id)?.clinic_name || 'N/A';
-    const getDoctorName = (visit: Visit) => diagnoses.find(d => d.visit_id === visit.visit_id)?.doctor || 'N/A';
+    
+    const getDoctorName = (visit: Visit) => {
+        const diagnosis = diagnoses.find(d => d.visit_id === visit.visit_id);
+        if (!diagnosis) return 'N/A';
+        
+        const doctorUser = users.find(u => u.username === diagnosis.doctor);
+        return doctorUser?.Name || diagnosis.doctor; // Fallback to username
+    };
 
     if (reportData) {
         return (
@@ -104,7 +126,11 @@ const MedicalReport: React.FC = () => {
                             <h1 className="text-3xl font-bold text-gray-800">مستوصف الراجحي التكافلي</h1>
                             <p className="text-md text-gray-600">Al Rajhi Takaful Polyclinic</p>
                         </div>
-                         <ChartBarIcon className="h-16 w-16 text-teal-600"/>
+                         {clinicLogo ? (
+                            <img src={clinicLogo} alt="شعار المستوصف" className="h-20 w-auto object-contain" />
+                         ) : (
+                            <ChartBarIcon className="h-16 w-16 text-teal-600"/>
+                         )}
                     </header>
 
                     <h2 className="text-center text-2xl font-bold mb-8 underline">تقرير طبي - Medical Report</h2>
@@ -121,7 +147,7 @@ const MedicalReport: React.FC = () => {
                             <h3 className="font-bold mb-2 border-b pb-1">تفاصيل الزيارة</h3>
                             <p><strong>تاريخ الزيارة:</strong> {reportData.visit.visit_date}</p>
                             <p><strong>العيادة:</strong> {reportData.clinic.clinic_name}</p>
-                            <p><strong>الطبيب المعالج:</strong> {reportData.diagnosis.doctor}</p>
+                            <p><strong>الطبيب المعالج:</strong> {reportData.doctor.doctor_name}</p>
                         </div>
                     </div>
 
@@ -153,18 +179,29 @@ const MedicalReport: React.FC = () => {
                     </div>
                     
                     {/* Footer */}
-                    <footer className="pt-16 text-center">
-                        <div className="flex justify-around items-center">
-                             <div className="w-1/2">
-                                <p className="font-bold mb-12">توقيع الطبيب المعالج</p>
-                                <p>.......................................</p>
+                    <footer className="pt-16">
+                        <div className="flex justify-around items-end">
+                            <div className="text-center w-1/2">
+                                <p className="font-bold mb-4">توقيع الطبيب المعالج</p>
+                                {reportData.doctor.signature ? (
+                                    <img src={reportData.doctor.signature} alt="توقيع الطبيب" className="h-16 mx-auto mb-2 object-contain" />
+                                ) : (
+                                    <div className="h-16 mb-2"></div> // Placeholder for spacing
+                                )}
+                                <p className="border-t-2 border-dotted border-gray-400 w-48 mx-auto"></p>
                             </div>
-                            <div className="w-1/2">
-                                <p className="font-bold mb-12">ختم العيادة</p>
-                                <p>.......................................</p>
+                            <div className="text-center w-1/2">
+                                <p className="font-bold mb-4">ختم المستوصف</p>
+                                {clinicStamp ? (
+                                     <img src={clinicStamp} alt="ختم المستوصف" className="h-24 mx-auto object-contain" />
+                                ) : (
+                                     <div className="h-24 w-24 border-2 border-dashed rounded-full mx-auto flex items-center justify-center text-gray-400">
+                                        <p className="text-xs">مكان الختم</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                        <p className="text-xs text-gray-500 mt-8">هذا التقرير صادر من النظام الإلكتروني لمستوصف الراجحي التكافلي.</p>
+                        <p className="text-xs text-gray-500 mt-8 text-center">هذا التقرير صادر من النظام الإلكتروني لمستوصف الراجحي التكافلي.</p>
                     </footer>
                 </div>
             </div>
@@ -187,16 +224,18 @@ const MedicalReport: React.FC = () => {
                     value={patientNameFilter}
                     onChange={e => setPatientNameFilter(e.target.value)}
                 />
-                <select
-                    className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    value={clinicFilter}
-                    onChange={e => setClinicFilter(e.target.value)}
-                >
-                    <option value="all">كل العيادات</option>
-                    {clinics.map(clinic => (
-                        <option key={clinic.clinic_id} value={clinic.clinic_id}>{clinic.clinic_name}</option>
-                    ))}
-                </select>
+                {user?.role !== Role.Doctor && (
+                    <select
+                        className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        value={clinicFilter}
+                        onChange={e => setClinicFilter(e.target.value)}
+                    >
+                        <option value="all">كل العيادات</option>
+                        {clinics.map(clinic => (
+                            <option key={clinic.clinic_id} value={clinic.clinic_id}>{clinic.clinic_name}</option>
+                        ))}
+                    </select>
+                )}
                 <input 
                     type="date" 
                     className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"

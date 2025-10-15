@@ -12,7 +12,7 @@ const getLocalYYYYMMDD = (date: Date): string => {
 };
 
 const DailyClinicReport: React.FC = () => {
-    const { clinics, visits, revenues, user } = useApp();
+    const { clinics, visits, revenues, user, clinicLogo } = useApp();
     const [selectedDate, setSelectedDate] = useState<string>(getLocalYYYYMMDD(new Date()));
 
     const reportData = useMemo(() => {
@@ -71,6 +71,7 @@ const DailyClinicReport: React.FC = () => {
                 </div>
             </div>
             <div className="hidden print:block text-center mb-6">
+                 {clinicLogo && <img src={clinicLogo} alt="شعار المستوصف" className="h-20 w-auto mx-auto mb-4 object-contain" />}
                  <h1 className="text-2xl font-bold text-black">تقرير العيادات اليومي</h1>
                  <p className="text-lg text-gray-700">لتاريخ: {selectedDate}</p>
             </div>

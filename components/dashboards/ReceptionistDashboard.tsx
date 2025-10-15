@@ -65,7 +65,7 @@ const ReceptionistDashboard: React.FC = () => {
 
     const filteredPatients = patients.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.phone.includes(searchTerm)
+        String(p.phone).includes(searchTerm)
     );
 
     const pastDiagnosesForSelectedPatient = useMemo(() => {

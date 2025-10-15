@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Role, User, Clinic, Doctor } from '../types';
 import Modal from '../components/ui/Modal';
-import { PlusIcon, PencilIcon, KeyIcon } from '@heroicons/react/24/solid';
+import { PlusIcon, PencilIcon, KeyIcon, NoSymbolIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 
 const Users: React.FC = () => {
     const { user: currentUser, users, clinics, doctors, addUser, updateUser } = useApp();
@@ -13,7 +13,7 @@ const Users: React.FC = () => {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     
     // State for forms
-    const initialFormState: Partial<User> = { name: '', role: Role.Reception, username: '', password: '', clinic_id: undefined, doctor_id: undefined, doctor_name: undefined };
+    const initialFormState: Partial<User> = { Name: '', role: Role.Reception, username: '', password: '', clinic_id: undefined, doctor_id: undefined, doctor_name: undefined, status: 'نشط' };
     const [formData, setFormData] = useState<Partial<User>>(initialFormState);
     const [passwordData, setPasswordData] = useState({ password: '', confirmPassword: '' });
     const [selectedDoctorForForm, setSelectedDoctorForForm] = useState<Doctor | null>(null);
@@ -30,12 +30,13 @@ const Users: React.FC = () => {
     const handleOpenEditModal = (userToEdit: User) => {
         setSelectedUser(userToEdit);
         setFormData({ 
-            name: userToEdit.name, 
+            Name: userToEdit.Name, 
             username: userToEdit.username, 
             role: userToEdit.role, 
             clinic_id: userToEdit.clinic_id,
             doctor_id: userToEdit.doctor_id,
-            doctor_name: userToEdit.doctor_name
+            doctor_name: userToEdit.doctor_name,
+            status: userToEdit.status,
         });
         
         if (userToEdit.role === Role.Doctor && userToEdit.doctor_id) {
@@ -53,6 +54,19 @@ const Users: React.FC = () => {
         setPasswordModalOpen(true);
     };
 
+    const handleToggleStatus = (user: User) => {
+        const newStatus = user.status === 'نشط' ? 'معطل' : 'نشط';
+        const actionText = newStatus === 'نشط' ? 'تفعيل' : 'تعطيل';
+        const message = newStatus === 'نشط' 
+            ? `سيتمكن المستخدم من تسجيل الدخول مرة أخرى.`
+            : `لن يتمكن المستخدم من تسجيل الدخول.`;
+
+        if (window.confirm(`هل أنت متأكد من ${actionText} حساب المستخدم "${user.Name || user.username}"؟ ${message}`)) {
+            updateUser(user.user_id, { status: newStatus });
+        }
+    };
+
+
     const handleCloseModals = () => {
         setAddEditModalOpen(false);
         setPasswordModalOpen(false);
@@ -67,12 +81,19 @@ const Users: React.FC = () => {
         const newFormData = { ...formData, [name]: value };
 
         if (name === 'role') {
+            // When role changes, clear doctor-specific fields.
             setSelectedDoctorForForm(null);
-            newFormData.username = '';
-            newFormData.name = '';
-            newFormData.clinic_id = value === Role.Doctor ? undefined : undefined;
             newFormData.doctor_id = undefined;
             newFormData.doctor_name = undefined;
+            newFormData.clinic_id = undefined;
+
+            // When switching TO a Doctor, the name/username must be derived from the selected doctor,
+            // so we clear the existing manually-entered ones. For other role changes 
+            // (e.g., Manager to Receptionist), preserving the name provides a better experience.
+            if (value === Role.Doctor) {
+                newFormData.Name = '';
+                newFormData.username = '';
+            }
         }
 
         setFormData(newFormData);
@@ -85,19 +106,21 @@ const Users: React.FC = () => {
         if (doctor) {
             setSelectedDoctorForForm(doctor);
             
-            // To resolve data inconsistencies, we now consider the 'Clinics' table as the
-            // single source of truth for which clinic a doctor is assigned to.
-            const assignedClinic = clinics.find(c => c.doctor_id === doctor.doctor_id);
+            // The doctor's own record contains the clinic_id they are assigned to.
+            // This is the correct source of truth for creating their user account.
+            const assignedClinicId = doctor.clinic_id;
 
-            if (!assignedClinic) {
-                alert(`تنبيه: الطبيب '${doctor.doctor_name}' غير معين كطبيب أساسي لأي عيادة في جدول العيادات. لن يتمكن من استخدام لوحة التحكم الخاصة به. يرجى مراجعة بيانات العيادات.`);
+            // Find the clinic to ensure it exists, but use the doctor's assigned clinic ID.
+            const clinicExists = clinics.some(c => c.clinic_id === assignedClinicId);
+            if (!clinicExists) {
+                alert(`تنبيه: العيادة المعينة للطبيب '${doctor.doctor_name}' (ID: ${assignedClinicId}) غير موجودة في قائمة العيادات. يرجى مراجعة بيانات الطبيب.`);
             }
     
             setFormData(prev => ({
                 ...prev,
-                name: doctor.doctor_name,
-                // The user's clinic_id is now derived from the 'Clinics' table.
-                clinic_id: assignedClinic ? assignedClinic.clinic_id : undefined,
+                Name: doctor.doctor_name,
+                // The user's clinic_id is now derived from the doctor's own record.
+                clinic_id: assignedClinicId,
                 doctor_id: doctor.doctor_id,
                 doctor_name: doctor.doctor_name,
             }));
@@ -105,7 +128,7 @@ const Users: React.FC = () => {
             setSelectedDoctorForForm(null);
             setFormData(prev => ({
                 ...prev,
-                name: '',
+                Name: '',
                 username: '',
                 clinic_id: undefined,
                 doctor_id: undefined,
@@ -140,10 +163,24 @@ const Users: React.FC = () => {
             return;
         }
         if (selectedUser) {
-            updateUser(selectedUser.user_id, { password: passwordData.password });
+            // To address the bug where changing a password creates a new user row,
+            // we now send the complete user object along with the new password.
+            // This works around a backend issue where a minimal payload was being
+            // misinterpreted, ensuring the existing user row is correctly updated.
+            const { password, ...restOfUser } = selectedUser;
+            const updateData = { ...restOfUser, password: passwordData.password };
+            updateUser(selectedUser.user_id, updateData);
         }
         handleCloseModals();
     };
+
+    const getStatusChip = (status: 'نشط' | 'معطل' | undefined) => {
+        if (!status) return null;
+        const color = status === 'نشط' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+        return <span className={`px-2 py-1 text-xs font-semibold rounded-full ${color}`}>{status}</span>;
+    };
+
+    const isDoctorForm = formData.role === Role.Doctor;
 
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
@@ -164,34 +201,38 @@ const Users: React.FC = () => {
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">الاسم</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">اسم المستخدم</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">الصلاحية</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">الحالة</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">العيادة</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">رقم الطبيب</th>
-                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">اسم الطبيب</th>
                             {isManager && <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">إجراءات</th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {users.map(userRow => (
-                            <tr key={userRow.user_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.user_id}</td>
-                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300 font-medium">{userRow.name}</td>
-                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.username}</td>
-                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.role}</td>
-                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{clinics.find(c => c.clinic_id === userRow.clinic_id)?.clinic_name || 'N/A'}</td>
-                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.role === Role.Doctor ? userRow.doctor_id : 'N/A'}</td>
-                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.role === Role.Doctor ? userRow.doctor_name : 'N/A'}</td>
-                                {isManager && (
-                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300 space-x-2 space-x-reverse">
-                                        <button onClick={() => handleOpenEditModal(userRow)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full dark:hover:bg-blue-900" title="تعديل">
-                                            <PencilIcon className="h-5 w-5" />
-                                        </button>
-                                        <button onClick={() => handleOpenPasswordModal(userRow)} className="p-2 text-gray-600 hover:bg-gray-200 rounded-full dark:hover:bg-gray-600" title="تغيير كلمة المرور">
-                                            <KeyIcon className="h-5 w-5" />
-                                        </button>
-                                    </td>
-                                )}
-                            </tr>
-                        ))}
+                        {users.map(userRow => {
+                            const isSelf = currentUser?.user_id === userRow.user_id;
+                            return (
+                                <tr key={userRow.user_id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${userRow.status === 'معطل' ? 'opacity-60 bg-gray-50 dark:bg-gray-800/50' : ''}`}>
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.user_id}</td>
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300 font-medium">{userRow.Name}</td>
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.username}</td>
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.role}</td>
+                                    <td className="p-3 text-sm">{getStatusChip(userRow.status)}</td>
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{clinics.find(c => c.clinic_id === userRow.clinic_id)?.clinic_name || 'N/A'}</td>
+                                    {isManager && (
+                                        <td className="p-3 text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                                            <button onClick={() => handleOpenEditModal(userRow)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full dark:hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed" title="تعديل" disabled={isSelf}>
+                                                <PencilIcon className="h-5 w-5" />
+                                            </button>
+                                            <button onClick={() => handleOpenPasswordModal(userRow)} className="p-2 text-gray-600 hover:bg-gray-200 rounded-full dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" title="تغيير كلمة المرور" disabled={isSelf}>
+                                                <KeyIcon className="h-5 w-5" />
+                                            </button>
+                                            <button onClick={() => handleToggleStatus(userRow)} className={`p-2 rounded-full ${userRow.status === 'نشط' ? 'text-red-600 hover:bg-red-100 dark:hover:bg-red-900' : 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900'} disabled:opacity-50 disabled:cursor-not-allowed`} title={userRow.status === 'نشط' ? 'تعطيل' : 'تفعيل'} disabled={isSelf}>
+                                                {userRow.status === 'نشط' ? <NoSymbolIcon className="h-5 w-5" /> : <CheckCircleIcon className="h-5 w-5" />}
+                                            </button>
+                                        </td>
+                                    )}
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -207,9 +248,9 @@ const Users: React.FC = () => {
                         </select>
                     </div>
 
-                    {formData.role === Role.Doctor ? (
+                    {isDoctorForm ? (
                         <>
-                            <div>
+                             <div>
                                 <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">اختر الطبيب</label>
                                 <select 
                                     value={selectedDoctorForForm?.doctor_id || ''} 
@@ -226,38 +267,34 @@ const Users: React.FC = () => {
                                 <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">الاسم</label>
                                 <input 
                                     type="text" 
-                                    value={formData.name || ''} 
-                                    className="w-full p-2 border rounded bg-gray-100 dark:bg-gray-600 dark:border-gray-500" 
-                                    readOnly 
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">اسم المستخدم (للدخول)</label>
-                                <input type="text" name="username" value={formData.username || ''} onChange={handleFormChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
-                            </div>
-
-                            <div>
-                                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">العيادة</label>
-                                <input 
-                                    type="text" 
-                                    value={clinics.find(c => c.clinic_id === formData.clinic_id)?.clinic_name || ''} 
+                                    value={formData.Name || ''} 
                                     className="w-full p-2 border rounded bg-gray-100 dark:bg-gray-600 dark:border-gray-500" 
                                     readOnly 
                                 />
                             </div>
                         </>
                     ) : (
-                        <>
-                            <div>
-                                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">الاسم</label>
-                                <input type="text" name="name" value={formData.name || ''} onChange={handleFormChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
-                            </div>
-                            <div>
-                                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">اسم المستخدم</label>
-                                <input type="text" name="username" value={formData.username || ''} onChange={handleFormChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
-                            </div>
-                        </>
+                        <div>
+                            <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">الاسم</label>
+                            <input type="text" name="Name" value={formData.Name || ''} onChange={handleFormChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                        </div>
+                    )}
+                    
+                    <div>
+                        <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">اسم المستخدم</label>
+                        <input type="text" name="username" value={formData.username || ''} onChange={handleFormChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                    </div>
+
+                    {isDoctorForm && (
+                        <div>
+                            <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">العيادة</label>
+                            <input 
+                                type="text" 
+                                value={clinics.find(c => c.clinic_id === formData.clinic_id)?.clinic_name || ''} 
+                                className="w-full p-2 border rounded bg-gray-100 dark:bg-gray-600 dark:border-gray-500" 
+                                readOnly 
+                            />
+                        </div>
                     )}
                     
                     {!selectedUser && (

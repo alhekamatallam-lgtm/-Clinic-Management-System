@@ -16,8 +16,9 @@ const Doctors: React.FC = () => {
         email: '',
         shift: 'صباحي',
         status: 'نشط',
+        signature: '',
     };
-    const [formData, setFormData] = useState(initialFormState);
+    const [formData, setFormData] = useState<Partial<Doctor>>(initialFormState);
 
     const handleOpenModal = () => {
         setFormData({ ...initialFormState, clinic_id: clinics[0]?.clinic_id || 0});
@@ -35,10 +36,21 @@ const Doctors: React.FC = () => {
             [name]: name === 'clinic_id' ? Number(value) : value,
         }));
     };
+    
+    const handleSignatureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({ ...prev, signature: reader.result as string }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await addDoctor(formData);
+        await addDoctor(formData as Omit<Doctor, 'doctor_id'>);
         handleCloseModal();
     };
 
@@ -97,19 +109,19 @@ const Doctors: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">اسم الطبيب</label>
-                            <input type="text" name="doctor_name" value={formData.doctor_name} onChange={handleChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                            <input type="text" name="doctor_name" value={formData.doctor_name || ''} onChange={handleChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">التخصص</label>
-                            <input type="text" name="specialty" value={formData.specialty} onChange={handleChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                            <input type="text" name="specialty" value={formData.specialty || ''} onChange={handleChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
                         </div>
                          <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">الهاتف</label>
-                            <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                            <input type="tel" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">البريد الإلكتروني</label>
-                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                            <input type="email" name="email" value={formData.email || ''} onChange={handleChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                         </div>
                          <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">العيادة</label>
@@ -124,12 +136,25 @@ const Doctors: React.FC = () => {
                                 <option value="مسائي">مسائي</option>
                             </select>
                         </div>
-                         <div className="md:col-span-2">
+                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">الحالة</label>
                             <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border rounded bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
                                 <option value="نشط">نشط</option>
                                 <option value="غير نشط">غير نشط</option>
                             </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">توقيع الطبيب</label>
+                            <input 
+                                type="file" 
+                                name="signature" 
+                                accept="image/png, image/jpeg" 
+                                onChange={handleSignatureChange}
+                                className="w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" 
+                            />
+                            {formData.signature && typeof formData.signature === 'string' && (
+                                <img src={formData.signature} alt="Preview" className="mt-2 h-16 border rounded p-1 bg-white"/>
+                            )}
                         </div>
                     </div>
                     <button
