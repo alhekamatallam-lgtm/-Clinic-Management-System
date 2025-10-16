@@ -47,7 +47,10 @@ const Queue: React.FC = () => {
 
             // Role-specific filtering (for doctors viewing their own queue)
             if (user?.role === Role.Doctor) {
-                return v.clinic_id === user.clinic_id;
+                // Find the clinic associated with the visit
+                const clinicForVisit = clinics.find(c => c.clinic_id === v.clinic_id);
+                // Check if that clinic is assigned to the current doctor user
+                return clinicForVisit && clinicForVisit.doctor_id === user.doctor_id;
             }
             
             return true; // For receptionists/managers, show all clinics
@@ -118,7 +121,7 @@ const Queue: React.FC = () => {
         <div>
             <div className="flex justify-between items-center mb-8 no-print">
                 <h1 className="text-4xl font-bold text-amber-800 dark:text-amber-300">شاشة الانتظار</h1>
-                 {(user?.role === Role.Doctor || user?.role === Role.Manager) && (
+                 {(user?.role === Role.Reception || user?.role === Role.Manager) && (
                     <button
                         onClick={() => setView('dashboard')}
                         className="flex items-center bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors shadow-md"

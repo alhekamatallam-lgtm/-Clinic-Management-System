@@ -14,7 +14,7 @@ const getLocalYYYYMMDD = (date: Date): string => {
 };
 
 const ReceptionistDashboard: React.FC = () => {
-    const { user, patients, visits, clinics, diagnoses, addPatient, addVisit, isAddingVisit, addManualRevenue, isAdding, showNotification } = useApp();
+    const { user, patients, visits, clinics, doctors, diagnoses, addPatient, addVisit, isAddingVisit, addManualRevenue, isAdding, showNotification } = useApp();
     const [isAddPatientModalOpen, setAddPatientModalOpen] = useState(false);
     const [isAddVisitModalOpen, setAddVisitModalOpen] = useState(false);
     const [isPastDiagnosesModalOpen, setPastDiagnosesModalOpen] = useState(false);
@@ -43,6 +43,10 @@ const ReceptionistDashboard: React.FC = () => {
     const visitDiscountValue = parseFloat(visitFormData.discount) || 0;
     const visitAmountAfterDiscount = Math.max(0, visitFormData.base_amount - visitDiscountValue);
     
+    const getDoctorName = (doctorId: number) => {
+        return doctors.find(d => d.doctor_id === doctorId)?.doctor_name || 'N/A';
+    };
+
     useEffect(() => {
         if (isAddVisitModalOpen && visitFormData.clinic_id && clinics.length > 0) {
             const selectedClinic = clinics.find(c => c.clinic_id === visitFormData.clinic_id);
@@ -289,7 +293,7 @@ const ReceptionistDashboard: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">العيادة</label>
                                 <select name="clinic_id" value={visitFormData.clinic_id} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" required >
-                                    {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name}</option>)}
+                                    {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name} - {getDoctorName(c.doctor_id)}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -337,7 +341,7 @@ const ReceptionistDashboard: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">العيادة</label>
                                 <select name="clinic_id" value={visitFormData.clinic_id} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" required >
-                                    {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name}</option>)}
+                                    {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name} - {getDoctorName(c.doctor_id)}</option>)}
                                 </select>
                             </div>
                             <div>

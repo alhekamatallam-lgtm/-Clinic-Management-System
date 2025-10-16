@@ -12,7 +12,7 @@ const getLocalYYYYMMDD = (date: Date): string => {
 };
 
 const DailyClinicReport: React.FC = () => {
-    const { clinics, visits, revenues, user, clinicLogo } = useApp();
+    const { clinics, visits, revenues, user, doctors, clinicLogo } = useApp();
     const [selectedDate, setSelectedDate] = useState<string>(getLocalYYYYMMDD(new Date()));
 
     const reportData = useMemo(() => {
@@ -29,16 +29,18 @@ const DailyClinicReport: React.FC = () => {
             const clinicRevenues = dailyRevenues.filter(r => r.clinic_id === clinic.clinic_id);
 
             const totalRevenue = clinicRevenues.reduce((sum, r) => sum + r.amount, 0);
+            
+            const doctor = doctors.find(d => d.doctor_id === clinic.doctor_id);
 
             return {
                 clinicId: clinic.clinic_id,
                 clinicName: clinic.clinic_name,
-                doctorName: clinic.doctor_name,
+                doctorName: doctor ? doctor.doctor_name : 'N/A',
                 caseCount: clinicVisits.length,
                 totalRevenue: totalRevenue,
             };
         });
-    }, [clinics, visits, revenues, selectedDate, user]);
+    }, [clinics, visits, revenues, selectedDate, user, doctors]);
 
     const grandTotals = useMemo(() => {
         const totalCases = reportData.reduce((sum, data) => sum + data.caseCount, 0);

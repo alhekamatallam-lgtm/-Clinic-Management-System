@@ -13,7 +13,7 @@ const getLocalYYYYMMDD = (date: Date): string => {
 };
 
 const Revenues: React.FC = () => {
-    const { revenues, clinics, patients, addManualRevenue, isAdding, showNotification } = useApp();
+    const { revenues, clinics, patients, doctors, addManualRevenue, isAdding, showNotification } = useApp();
     
     const [isAddModalOpen, setAddModalOpen] = useState(false);
     const today = getLocalYYYYMMDD(new Date());
@@ -52,6 +52,10 @@ const Revenues: React.FC = () => {
         : patients;
 
     const getClinicName = (id: number) => clinics.find(c => c.clinic_id === id)?.clinic_name || 'N/A';
+    
+    const getDoctorName = (doctorId: number) => {
+        return doctors.find(d => d.doctor_id === doctorId)?.doctor_name || 'N/A';
+    };
 
     const handleOpenModal = () => {
         setFormData({
@@ -257,7 +261,7 @@ const Revenues: React.FC = () => {
                                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                 required
                             >
-                                {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name}</option>)}
+                                {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name} - {getDoctorName(c.doctor_id)}</option>)}
                             </select>
                         </div>
                         <div>

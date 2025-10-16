@@ -43,7 +43,7 @@ const mapRowToObject = <T,>(row: any[], sheetName: keyof typeof COLUMN_MAPPING):
     keys.forEach((key, index) => {
         const value = row[index];
         // Coerce IDs and numeric fields to numbers for type consistency.
-        if (key.endsWith('_id') || ['queue_number', 'amount', 'price_first_visit', 'price_followup'].includes(key)) {
+        if (key.endsWith('_id') || ['queue_number', 'amount', 'price_first_visit', 'price_followup', 'max_patients_per_day'].includes(key)) {
             obj[key] = Number(value) || 0;
         } 
         // Convert comma-separated strings for labs_needed back into an array.
@@ -75,6 +75,9 @@ interface AppContextType {
     addDiagnosis: (diagnosis: Omit<Diagnosis, 'diagnosis_id'>) => Promise<void>;
     addManualRevenue: (revenue: Omit<Revenue, 'revenue_id'>) => Promise<boolean>;
     addDoctor: (doctor: Omit<Doctor, 'doctor_id'>) => Promise<void>;
+    addClinic: (clinic: Omit<Clinic, 'clinic_id' | 'doctor_name'>) => Promise<void>;
+    updateClinic: (clinicId: number, clinicData: Partial<Omit<Clinic, 'clinic_id'>>) => Promise<void>;
+    deleteClinic: (clinicId: number) => Promise<void>;
     updateVisitStatus: (visitId: number, status: VisitStatus) => void; 
     addUser: (user: Omit<User, 'user_id'>) => Promise<void>;
     updateUser: (userId: number, userData: Partial<Omit<User, 'user_id'>>) => Promise<void>;
@@ -531,6 +534,61 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     };
 
+    const addClinic = async (clinicData: Omit<Clinic, 'clinic_id' | 'doctor_name'>) => {
+        try {
+            const result = await postData('Clinics', clinicData);
+            if (result.success) {
+                showNotification(result.message || 'تمت إضافة العيادة بنجاح', 'success');
+                await fetchData(true);
+            } else {
+                showNotification(result.message || 'فشلت إضافة العيادة', 'error');
+            }
+        } catch (e: any) {
+            showNotification(e.message || 'فشلت إضافة العيادة', 'error');
+            console.error("Failed to add clinic:", e);
+        }
+    };
+
+    const updateClinic = async (clinicId: number, clinicData: Partial<Omit<Clinic, 'clinic_id'>>) => {
+        try {
+            const dataToSend = {
+                action: 'update',
+                clinic_id: clinicId,
+                ...clinicData
+            };
+            const result = await postData('Clinics', dataToSend);
+            if (result.success) {
+                showNotification(result.message || 'تم تحديث العيادة بنجاح', 'success');
+                await fetchData(true);
+            } else {
+                 showNotification(result.message || 'فشل تحديث العيادة', 'error');
+            }
+        } catch (e: any) {
+            showNotification(e.message, 'error');
+            console.error("Failed to update clinic:", e);
+        }
+    };
+
+    const deleteClinic = async (clinicId: number) => {
+        try {
+            const dataToSend = {
+                action: 'delete',
+                clinic_id: clinicId
+            };
+            const result = await postData('Clinics', dataToSend);
+            if (result.success) {
+                showNotification(result.message || 'تم حذف العيادة بنجاح', 'success');
+                await fetchData(true);
+            } else {
+                 showNotification(result.message || 'فشل حذف العيادة', 'error');
+            }
+        } catch (e: any) {
+            showNotification(e.message, 'error');
+            console.error("Failed to delete clinic:", e);
+        }
+    };
+
+
     const updateUser = async (userId: number, userData: Partial<Omit<User, 'user_id'>>) => {
         try {
             const dataToSend = {
@@ -581,6 +639,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         patients, visits, diagnoses, users, clinics, revenues, doctors,
         addPatient, addVisit, addDiagnosis, addManualRevenue, updateVisitStatus,
         addUser, updateUser, addDoctor, deleteUser,
+        addClinic, updateClinic, deleteClinic,
         isAdding, isAddingVisit,
         loading, isSyncing, error,
         notification, hideNotification, showNotification,

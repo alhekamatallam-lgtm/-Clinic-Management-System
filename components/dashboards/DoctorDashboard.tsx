@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { VisitStatus, Diagnosis, Visit } from '../../types';
 import Modal from '../ui/Modal';
@@ -14,7 +14,7 @@ const getLocalYYYYMMDD = (date: Date): string => {
 };
 
 const DoctorDashboard: React.FC = () => {
-    const { user, visits, patients, diagnoses, addDiagnosis, updateVisitStatus, revenues } = useApp();
+    const { user, visits, patients, diagnoses, addDiagnosis, updateVisitStatus, revenues, clinics } = useApp();
     const [selectedVisitId, setSelectedVisitId] = useState<number | null>(null);
     const [isDiagnosisModalOpen, setDiagnosisModalOpen] = useState(false);
     const [newDiagnosis, setNewDiagnosis] = useState<Omit<Diagnosis, 'diagnosis_id'>>({
@@ -26,12 +26,17 @@ const DoctorDashboard: React.FC = () => {
         notes: ''
     });
 
-    if (!user || user.role !== 'doctor' || !user.clinic_id) {
+    if (!user || user.role !== 'doctor' || !user.doctor_id) {
         return <div> وصول غير مصرح به </div>;
     }
 
     const today = getLocalYYYYMMDD(new Date());
-    const doctorClinicId = user.clinic_id;
+    const doctorId = user.doctor_id;
+
+    const myClinicIds = useMemo(() => 
+        clinics.filter(c => c.doctor_id === doctorId).map(c => c.clinic_id),
+        [clinics, doctorId]
+    );
 
     const hasDiagnosis = (visitId: number) => diagnoses.some(d => d.visit_id === visitId);
 
@@ -42,8 +47,9 @@ const DoctorDashboard: React.FC = () => {
         return visit.status;
     };
 
-    const myVisitsToday = visits.filter(v => v.clinic_id === doctorClinicId && v.visit_date === today)
-        .sort((a,b) => a.queue_number - b.queue_number);
+    const myVisitsToday = visits.filter(v => 
+        myClinicIds.includes(v.clinic_id) && v.visit_date === today
+    ).sort((a,b) => a.queue_number - b.queue_number);
 
     // Split visits into waiting and completed lists based on the effective status
     const waitingVisits = myVisitsToday.filter(v => {
@@ -57,7 +63,7 @@ const DoctorDashboard: React.FC = () => {
     });
     
     const todaysRevenue = revenues
-        .filter(r => r.clinic_id === doctorClinicId && r.date === today)
+        .filter(r => myClinicIds.includes(r.clinic_id) && r.date === today)
         .reduce((sum, r) => sum + r.amount, 0);
 
     const openDiagnosisModal = (visitId: number) => {

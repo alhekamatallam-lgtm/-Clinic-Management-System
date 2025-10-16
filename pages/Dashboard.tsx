@@ -13,15 +13,7 @@ const Dashboard: React.FC = () => {
       case Role.Reception:
         return <ReceptionistDashboard />;
       case Role.Doctor:
-        return (
-            <>
-                <DoctorDashboard />
-                <div className="mt-8">
-                    <h2 className="text-2xl font-bold text-teal-800 dark:text-teal-300 mb-4">بحث عن مريض وتسجيل زيارة</h2>
-                    <ReceptionistDashboard />
-                </div>
-            </>
-        );
+        return <DoctorDashboard />;
       case Role.Manager:
         return (
             <>

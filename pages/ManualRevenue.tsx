@@ -11,7 +11,7 @@ const getLocalYYYYMMDD = (date: Date): string => {
 };
 
 const ManualRevenue: React.FC = () => {
-    const { clinics, addManualRevenue, isAdding } = useApp();
+    const { clinics, doctors, addManualRevenue, isAdding } = useApp();
     const today = getLocalYYYYMMDD(new Date());
 
     const [formData, setFormData] = useState({
@@ -22,6 +22,10 @@ const ManualRevenue: React.FC = () => {
         type: VisitType.FirstVisit,
         notes: '',
     });
+
+    const getDoctorName = (doctorId: number) => {
+        return doctors.find(d => d.doctor_id === doctorId)?.doctor_name || 'N/A';
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -84,7 +88,7 @@ const ManualRevenue: React.FC = () => {
                         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         required
                     >
-                        {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name}</option>)}
+                        {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name} - {getDoctorName(c.doctor_id)}</option>)}
                     </select>
                 </div>
                 <div>
