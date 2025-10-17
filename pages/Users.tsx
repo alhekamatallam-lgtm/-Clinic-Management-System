@@ -4,6 +4,15 @@ import { Role, User, Clinic, Doctor } from '../types';
 import Modal from '../components/ui/Modal';
 import { PlusIcon, PencilIcon, KeyIcon, NoSymbolIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 
+const translateRole = (role: Role) => {
+    switch(role) {
+        case Role.Manager: return 'مدير';
+        case Role.Doctor: return 'طبيب';
+        case Role.Reception: return 'موظف استقبال';
+        default: return role;
+    }
+}
+
 const Users: React.FC = () => {
     const { user: currentUser, users, clinics, doctors, addUser, updateUser } = useApp();
     
@@ -231,7 +240,7 @@ const Users: React.FC = () => {
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.user_id}</td>
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300 font-medium">{userRow.Name}</td>
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.username}</td>
-                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{userRow.role}</td>
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{translateRole(userRow.role)}</td>
                                     <td className="p-3 text-sm">{getStatusChip(userRow.status)}</td>
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{clinics.find(c => c.clinic_id === userRow.clinic_id)?.clinic_name || 'N/A'}</td>
                                     {isManager && (

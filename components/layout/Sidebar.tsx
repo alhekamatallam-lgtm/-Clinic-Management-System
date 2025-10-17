@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { Role, View } from '../../types';
-import { ChartBarIcon, UserGroupIcon, ClipboardDocumentListIcon, UsersIcon, BuildingOffice2Icon, DocumentChartBarIcon, PresentationChartLineIcon, BeakerIcon, QueueListIcon, CurrencyDollarIcon, HeartIcon, ChevronDownIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { ChartBarIcon, UserGroupIcon, ClipboardDocumentListIcon, UsersIcon, BuildingOffice2Icon, DocumentChartBarIcon, PresentationChartLineIcon, BeakerIcon, QueueListIcon, CurrencyDollarIcon, HeartIcon, ChevronDownIcon, Cog6ToothIcon, BookOpenIcon, LightBulbIcon } from '@heroicons/react/24/outline';
 
 const Sidebar: React.FC = () => {
     const { user, currentView, setView, isSidebarOpen } = useApp();
@@ -37,6 +37,8 @@ const Sidebar: React.FC = () => {
         { view: 'users', label: 'المستخدمين', icon: UsersIcon, roles: [Role.Manager] },
         { view: 'clinics', label: 'العيادات', icon: BuildingOffice2Icon, roles: [Role.Manager] },
         { view: 'doctors', label: 'الأطباء', icon: HeartIcon, roles: [Role.Manager] },
+        { view: 'documentation', label: 'الوثائق', icon: BookOpenIcon, roles: [Role.Reception, Role.Doctor, Role.Manager] },
+        { view: 'optimization', label: 'تحسينات واقتراحات', icon: LightBulbIcon, roles: [Role.Reception, Role.Doctor, Role.Manager] },
         { view: 'settings', label: 'الإعدادات', icon: Cog6ToothIcon, roles: [Role.Manager] },
     ];
 

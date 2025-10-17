@@ -4,6 +4,15 @@ import { VisitStatus, Role, Diagnosis, Visit, Patient } from '../types';
 import Modal from '../components/ui/Modal';
 import { PencilSquareIcon, FunnelIcon, XMarkIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/solid';
 
+const translateVisitStatus = (status: VisitStatus): string => {
+    switch (status) {
+        case VisitStatus.Waiting: return 'في الانتظار';
+        case VisitStatus.InProgress: return 'قيد المعالجة';
+        case VisitStatus.Completed: return 'مكتمل';
+        case VisitStatus.Canceled: return 'ملغى';
+        default: return status;
+    }
+};
 
 const Visits: React.FC = () => {
     const { user, visits, patients, clinics, diagnoses, addDiagnosis, updateVisitStatus } = useApp();
@@ -175,7 +184,7 @@ const Visits: React.FC = () => {
                     >
                         <option value="all">كل الحالات</option>
                         {Object.values(VisitStatus).map(status => (
-                            <option key={status} value={status}>{status}</option>
+                            <option key={status} value={status}>{translateVisitStatus(status)}</option>
                         ))}
                     </select>
                 </div>
@@ -235,7 +244,7 @@ const Visits: React.FC = () => {
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden lg:table-cell">{visit.queue_number}</td>
                                     <td className="p-3">
                                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(effectiveStatus)}`}>
-                                          {effectiveStatus}
+                                          {translateVisitStatus(effectiveStatus)}
                                       </span>
                                     </td>
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden lg:table-cell">{visit.visit_type}</td>

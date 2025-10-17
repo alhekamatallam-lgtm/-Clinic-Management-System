@@ -13,6 +13,17 @@ const getLocalYYYYMMDD = (date: Date): string => {
     return `${year}-${month}-${day}`;
 };
 
+const translateVisitStatus = (status: VisitStatus): string => {
+    switch (status) {
+        case VisitStatus.Waiting: return 'في الانتظار';
+        case VisitStatus.InProgress: return 'قيد المعالجة';
+        case VisitStatus.Completed: return 'مكتمل';
+        case VisitStatus.Canceled: return 'ملغى';
+        default: return status;
+    }
+};
+
+
 const DoctorDashboard: React.FC = () => {
     const { user, visits, patients, diagnoses, addDiagnosis, updateVisitStatus, revenues, clinics } = useApp();
     const [selectedVisitId, setSelectedVisitId] = useState<number | null>(null);
@@ -109,7 +120,7 @@ const DoctorDashboard: React.FC = () => {
                 <td className="p-3 font-medium text-gray-800 dark:text-gray-200">{getPatientName(visit.patient_id)}</td>
                 <td className="p-3">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(effectiveStatus)}`}>
-                        {effectiveStatus}
+                        {translateVisitStatus(effectiveStatus)}
                     </span>
                 </td>
                 <td className="p-3">
@@ -152,7 +163,6 @@ const DoctorDashboard: React.FC = () => {
                                 <tr className="bg-teal-50 dark:bg-teal-900/50">
                                     <td colSpan={4} className="p-2 text-center font-bold text-teal-800 dark:text-teal-300">قائمة الانتظار الحالية</td>
                                 </tr>
-                                {/* FIX: Swapped `visit` and `index` to match the correct `map` function signature. */}
                                 {waitingVisits.map((visit, index) => (
                                     <VisitRow key={visit.visit_id} visit={visit} queuePosition={index + 1} isWaiting={true} />
                                 ))}

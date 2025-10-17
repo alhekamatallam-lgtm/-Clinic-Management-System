@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode, useRef } from 'react';
-import { Patient, Visit, Diagnosis, User, Clinic, Revenue, Role, View, VisitStatus, VisitType, Doctor } from '../types';
+import { Patient, Visit, Diagnosis, User, Clinic, Revenue, Role, View, VisitStatus, VisitType, Doctor, Optimization } from '../types';
 
 // The API URL provided by the user.
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfeigTybRITqPkWkc7IU1NJ79jz8ulWQtIOxttTrCwcaZRS-mThsbf9k_1LEiOR6nG/exec"; 
@@ -14,6 +14,7 @@ const COLUMN_MAPPING = {
     Doctors: ['doctor_id', 'doctor_name', 'specialty', 'clinic_id', 'phone', 'email', 'shift', 'status', 'signature'],
     Clinics: ['clinic_id', 'clinic_name', 'doctor_id', 'doctor_name', 'max_patients_per_day', 'price_first_visit', 'price_followup', 'shift', 'notes'],
     Settings: ['logo', 'stamp', 'signature'],
+    Optimization: ['optimization_id', 'user', 'name', 'page', 'optimize'],
 };
 
 // Helper function to format dates consistently to 'YYYY-MM-DD' in the local timezone.
@@ -70,12 +71,14 @@ interface AppContextType {
     clinics: Clinic[];
     revenues: Revenue[];
     doctors: Doctor[];
+    optimizations: Optimization[];
     addPatient: (patient: Omit<Patient, 'patient_id'>) => Promise<void>;
     addVisit: (visit: Omit<Visit, 'visit_id' | 'visit_date' | 'queue_number' | 'status'>) => Promise<Visit>;
     addDiagnosis: (diagnosis: Omit<Diagnosis, 'diagnosis_id'>) => Promise<void>;
     addManualRevenue: (revenue: Omit<Revenue, 'revenue_id'>) => Promise<boolean>;
     addDoctor: (doctor: Omit<Doctor, 'doctor_id'>) => Promise<void>;
     addClinic: (clinic: Omit<Clinic, 'clinic_id' | 'doctor_name'>) => Promise<void>;
+    addOptimization: (suggestion: Omit<Optimization, 'optimization_id'>) => Promise<void>;
     updateClinic: (clinicId: number, clinicData: Partial<Omit<Clinic, 'clinic_id'>>) => Promise<void>;
     deleteClinic: (clinicId: number) => Promise<void>;
     updateVisitStatus: (visitId: number, status: VisitStatus) => void; 
@@ -131,6 +134,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [clinics, setClinics] = useState<Clinic[]>([]);
     const [revenues, setRevenues] = useState<Revenue[]>([]);
     const [doctors, setDoctors] = useState<Doctor[]>([]);
+    const [optimizations, setOptimizations] = useState<Optimization[]>([]);
 
     // API states
     const [loading, setLoading] = useState(true);
@@ -210,6 +214,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 setClinics(processedClinics);
                 setRevenues(processedRevenues);
                 setDoctors(result.data.Doctors || []);
+                setOptimizations(result.data.Optimization || []);
             } else {
                 throw new Error(result.message || "Failed to fetch data.");
             }
@@ -549,6 +554,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     };
 
+    const addOptimization = async (suggestionData: Omit<Optimization, 'optimization_id'>) => {
+        try {
+            const result = await postData('Optimization', suggestionData);
+            if (result.success) {
+                showNotification('تم إرسال اقتراحك بنجاح. شكراً لك!', 'success');
+                await fetchData(true);
+            } else {
+                showNotification(result.message || 'فشل إرسال الاقتراح', 'error');
+            }
+        } catch (e: any) {
+            showNotification(e.message || 'فشل إرسال الاقتراح', 'error');
+            console.error("Failed to add optimization:", e);
+        }
+    };
+
     const updateClinic = async (clinicId: number, clinicData: Partial<Omit<Clinic, 'clinic_id'>>) => {
         try {
             const dataToSend = {
@@ -636,10 +656,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     
     const value = {
         user, login, logout, currentView, setView,
-        patients, visits, diagnoses, users, clinics, revenues, doctors,
+        patients, visits, diagnoses, users, clinics, revenues, doctors, optimizations,
         addPatient, addVisit, addDiagnosis, addManualRevenue, updateVisitStatus,
         addUser, updateUser, addDoctor, deleteUser,
-        addClinic, updateClinic, deleteClinic,
+        addClinic, updateClinic, deleteClinic, addOptimization,
         isAdding, isAddingVisit,
         loading, isSyncing, error,
         notification, hideNotification, showNotification,

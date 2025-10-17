@@ -1,64 +1,54 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useApp } from '../../contexts/AppContext';
+import FeedbackButton from '../ui/FeedbackButton';
+import AiAssistant from '../ui/AiAssistant';
 import { CheckCircleIcon, XCircleIcon, XMarkIcon } from '@heroicons/react/24/solid';
 
-// Notification component defined locally to display global messages
-const Notification: React.FC<{ message: string; type: 'success' | 'error'; }> = ({ message, type }) => {
-    const { hideNotification } = useApp();
-
-    const isSuccess = type === 'success';
-    const bgColor = isSuccess ? 'bg-teal-500' : 'bg-red-500';
-    const Icon = isSuccess ? CheckCircleIcon : XCircleIcon;
-
-    return (
-        <div 
-            className={`fixed top-5 left-1/2 -translate-x-1/2 min-w-[300px] z-[100] p-4 rounded-lg shadow-lg flex items-center text-white ${bgColor} animate-fade-in-down no-print`}
-            role="alert"
-            aria-live="assertive"
-        >
-            <div className="flex-shrink-0">
-                <Icon className="h-6 w-6" aria-hidden="true" />
-            </div>
-            <div className="mx-3">
-                <p className="font-medium">{message}</p>
-            </div>
-            <button 
-                onClick={hideNotification} 
-                className="ml-auto -mx-1.5 -my-1.5 bg-white bg-opacity-20 p-1.5 rounded-lg inline-flex h-8 w-8 text-white hover:bg-opacity-30 focus:ring-2 focus:ring-white"
-                aria-label="إغلاق"
-            >
-                <span className="sr-only">إغلاق</span>
-                <XMarkIcon className="h-5 w-5" aria-hidden="true" />
-            </button>
-        </div>
-    );
-};
-
-
-const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { notification, isSidebarOpen, toggleSidebar } = useApp();
+// Notification component defined within DashboardLayout to avoid creating new files.
+const Notification: React.FC = () => {
+    const { notification, hideNotification } = useApp();
   
+    if (!notification) return null;
+  
+    const isSuccess = notification.type === 'success';
+  
+    return (
+      <div 
+        className={`fixed top-5 left-5 z-[100] p-4 rounded-lg shadow-lg flex items-center text-white transition-all duration-300 ${isSuccess ? 'bg-teal-500' : 'bg-red-500'}`}
+        style={{ direction: 'rtl' }}
+      >
+        {isSuccess ? <CheckCircleIcon className="h-6 w-6 ml-2" /> : <XCircleIcon className="h-6 w-6 ml-2" />}
+        <span className="flex-grow">{notification.message}</span>
+         <button onClick={hideNotification} className="mr-2 p-1 rounded-full hover:bg-black/20">
+            <XMarkIcon className="h-5 w-5"/>
+        </button>
+      </div>
+    );
+  };
+
+
+interface DashboardLayoutProps {
+  children: ReactNode;
+}
+
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+    const { isSidebarOpen, toggleSidebar } = useApp();
+
   return (
-    <div className="relative flex h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900" dir="rtl">
       <Sidebar />
-      {isSidebarOpen && (
-          <div 
-              onClick={toggleSidebar}
-              className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden no-print"
-              aria-hidden="true"
-          ></div>
-      )}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="no-print">
-          <Header />
-        </div>
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
-          {children}
+      <div className="flex-1 flex flex-col transition-all duration-300 ease-in-out">
+        <Header />
+        <main className={`flex-1 p-4 sm:p-6 overflow-y-auto`}>
+            {isSidebarOpen && <div onClick={toggleSidebar} className="fixed inset-0 bg-black/30 z-20 lg:hidden" aria-hidden="true"></div>}
+            {children}
         </main>
       </div>
-      {notification && <Notification message={notification.message} type={notification.type} />}
+      <Notification />
+      <FeedbackButton />
+      <AiAssistant />
     </div>
   );
 };

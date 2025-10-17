@@ -1,126 +1,106 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
+<head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>نظام إدارة العيادات</title>
+    <title>نظام إدارة عيادات الراجحي</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-      @keyframes fadeInDown {
-        from {
-          opacity: 0;
-          transform: translate(-50%, -20px);
-        }
-        to {
-          opacity: 1;
-          transform: translate(-50%, 0);
-        }
-      }
-      .animate-fade-in-down {
-        animation: fadeInDown 0.5s ease-out forwards;
-      }
-      
-      .font-amiri {
-        font-family: 'Amiri', serif;
-      }
-
-      @media print {
         body {
-          background-color: white;
-          font-family: 'Amiri', serif;
+            font-family: 'Tajawal', sans-serif;
         }
-        .no-print {
-          display: none !important;
+        /* Custom scrollbar for better UX */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
         }
-        main {
-          padding: 0 !important;
-          margin: 0 !important;
-          overflow: visible !important;
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
         }
-        .printable-area {
-          box-shadow: none !important;
-          border: 1px solid #ccc;
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
         }
-        .printable-medical-report {
-          display: block !important;
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          width: 100%;
-          margin: 0;
-          padding: 20px;
-          border: none;
-          box-shadow: none;
-          color: black;
-          background-color: white;
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
-      }
-      /* Recharts Dark Mode Styles */
-      .recharts-text.recharts-cartesian-axis-tick-value {
-          fill: #4b5563; /* gray-600 */
-      }
-      .recharts-legend-item-text {
-          color: #4b5563 !important; /* gray-600 */
-      }
-      .recharts-tooltip-label {
-         color: #374151 !important; /* gray-700 */
-      }
-      .recharts-cartesian-grid-horizontal line, 
-      .recharts-cartesian-grid-vertical line { 
-          stroke: #e5e7eb; /* gray-200 */
-      }
-      @media (prefers-color-scheme: dark) {
-        .recharts-text.recharts-cartesian-axis-tick-value {
-            fill: #d1d5db; /* gray-300 */
+        .dark ::-webkit-scrollbar-track {
+            background: #2d3748; /* gray-800 */
         }
-        .recharts-legend-item-text {
-            color: #d1d5db !important; /* gray-300 */
+        .dark ::-webkit-scrollbar-thumb {
+            background: #718096; /* gray-500 */
         }
-        .recharts-tooltip-wrapper {
-            background-color: #1f2937 !important; /* gray-800 */
-            border-color: #4b5563 !important; /* gray-600 */
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0; /* gray-400 */
         }
-        .recharts-tooltip-label {
-           color: #f9fafb !important; /* gray-50 */
+        /* Print-specific styles */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .printable-area {
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            body {
+                background-color: #fff;
+            }
+            .printable-medical-report {
+                font-size: 12pt;
+            }
         }
-        .recharts-cartesian-grid-horizontal line, 
-        .recharts-cartesian-grid-vertical line { 
-            stroke: #374151; /* gray-700 */
+        /* Animation for notifications */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translate3d(-50%, -100%, 0);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(-50%, 0, 0);
+            }
         }
-      }
+        .animate-fade-in-down {
+            animation: fadeInDown 0.5s ease-out forwards;
+        }
+
+        /* Animation for documentation page */
+        @keyframes fadeInSlideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in-slide-down {
+          animation: fadeInSlideDown 0.5s ease-out forwards;
+        }
     </style>
-    <script>
-      tailwind.config = {
-        darkMode: 'media', // Enable dark mode based on OS preference
-        theme: {
-          extend: {
-            fontFamily: {
-              'sans': ['Tajawal', 'sans-serif'],
-              'serif': ['Amiri', 'serif'],
-            },
-          },
-        },
-      }
-    </script>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "@heroicons/react/": "https://aistudiocdn.com/@heroicons/react@^2.2.0/",
-    "recharts": "https://aistudiocdn.com/recharts@^3.2.1"
-  }
-}
-</script>
 </head>
-  <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+<body class="bg-gray-100 dark:bg-gray-900">
     <div id="root"></div>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.25.0",
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
+        "@heroicons/react/": "https://aistudiocdn.com/@heroicons/react@^2.2.0/"
+      }
+    }
+    </script>
     <script type="module" src="/index.tsx"></script>
-  </body>
+</body>
 </html>

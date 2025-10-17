@@ -13,6 +13,16 @@ const getLocalYYYYMMDD = (date: Date): string => {
     return `${year}-${month}-${day}`;
 };
 
+const translateVisitStatus = (status: VisitStatus): string => {
+    switch (status) {
+        case VisitStatus.Waiting: return 'في الانتظار';
+        case VisitStatus.InProgress: return 'قيد المعالجة';
+        case VisitStatus.Completed: return 'مكتمل';
+        case VisitStatus.Canceled: return 'ملغى';
+        default: return status;
+    }
+};
+
 const Queue: React.FC = () => {
     const { user, visits, patients, clinics, diagnoses, setView, addDiagnosis, updateVisitStatus } = useApp();
 
@@ -149,7 +159,7 @@ const Queue: React.FC = () => {
                                                 <p className="text-lg text-gray-600 dark:text-gray-300">{getPatientName(visit.patient_id)}</p>
                                             </div>
                                             <span className={`px-3 py-1 text-sm font-semibold rounded-full ${visit.status === VisitStatus.InProgress ? 'bg-blue-200 text-blue-800 dark:bg-blue-900 dark:text-blue-300' : 'bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'}`}>
-                                                {visit.status}
+                                                {translateVisitStatus(visit.status)}
                                             </span>
                                         </div>
                                          {(user?.role === Role.Doctor || user?.role === Role.Manager) && (
