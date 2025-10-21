@@ -14,6 +14,7 @@ export interface Visit {
     patient_id: number;
     clinic_id: number;
     visit_date: string;
+    visit_time?: string;
     queue_number: number;
     status: VisitStatus;
     visit_type: VisitType;
@@ -90,6 +91,7 @@ export enum Role {
     Manager = 'manager',
     Doctor = 'doctor',
     Reception = 'reception',
+    QueueScreen = 'queuescreen',
 }
 
 export enum VisitStatus {

@@ -118,6 +118,7 @@ const DoctorDashboard: React.FC = () => {
             <tr className={`border-b dark:border-gray-700 ${!isWaiting ? 'bg-gray-50 dark:bg-gray-800/60 opacity-60' : ''}`}>
                 <td className="p-3 font-bold text-teal-800 dark:text-teal-300">{queuePosition}</td>
                 <td className="p-3 font-medium text-gray-800 dark:text-gray-200">{getPatientName(visit.patient_id)}</td>
+                <td className="p-3 text-sm text-gray-500 dark:text-gray-400">{visit.visit_time || '—'}</td>
                 <td className="p-3">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(effectiveStatus)}`}>
                         {translateVisitStatus(effectiveStatus)}
@@ -153,6 +154,7 @@ const DoctorDashboard: React.FC = () => {
                             <tr>
                                 <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">رقم الانتظار</th>
                                 <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">اسم المريض</th>
+                                <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">الوقت</th>
                                 <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">الحالة</th>
                                 <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">إجراء</th>
                             </tr>
@@ -161,7 +163,7 @@ const DoctorDashboard: React.FC = () => {
                         {waitingVisits.length > 0 && (
                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                 <tr className="bg-teal-50 dark:bg-teal-900/50">
-                                    <td colSpan={4} className="p-2 text-center font-bold text-teal-800 dark:text-teal-300">قائمة الانتظار الحالية</td>
+                                    <td colSpan={5} className="p-2 text-center font-bold text-teal-800 dark:text-teal-300">قائمة الانتظار الحالية</td>
                                 </tr>
                                 {waitingVisits.map((visit, index) => (
                                     <VisitRow key={visit.visit_id} visit={visit} queuePosition={index + 1} isWaiting={true} />
@@ -172,7 +174,7 @@ const DoctorDashboard: React.FC = () => {
                         {completedVisits.length > 0 && (
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                 <tr className="bg-gray-100 dark:bg-gray-700">
-                                    <td colSpan={4} className="p-2 text-center font-bold text-gray-600 dark:text-gray-300">الزيارات المكتملة</td>
+                                    <td colSpan={5} className="p-2 text-center font-bold text-gray-600 dark:text-gray-300">الزيارات المكتملة</td>
                                 </tr>
                                 {completedVisits.map((visit) => (
                                     <VisitRow key={visit.visit_id} visit={visit} queuePosition={<CheckCircleIcon className="h-5 w-5 text-green-500 mx-auto" />} isWaiting={false} />

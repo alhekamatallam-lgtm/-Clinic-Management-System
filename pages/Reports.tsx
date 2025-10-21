@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { FunnelIcon, XMarkIcon, PrinterIcon } from '@heroicons/react/24/solid';
-import { VisitType } from '../types';
+import { VisitType, Role } from '../types';
 
 const Reports: React.FC = () => {
-    const { revenues, clinics, doctors, clinicLogo } = useApp();
+    const { user, revenues, clinics, doctors, clinicLogo } = useApp();
     
     // State for filters
     const [patientNameFilter, setPatientNameFilter] = useState<string>('');
@@ -17,6 +17,17 @@ const Reports: React.FC = () => {
     const filteredRevenues = useMemo(() => {
         let tempRevenues = [...revenues];
 
+        // Role-based filtering: Doctors can only see revenues from their assigned clinics.
+        if (user?.role === Role.Doctor && user.doctor_id) {
+            // Find all clinic IDs where this doctor is assigned
+            const doctorClinicIds = clinics
+                .filter(c => c.doctor_id === user.doctor_id)
+                .map(c => c.clinic_id);
+            
+            // Filter revenues to only include those from the doctor's clinics
+            tempRevenues = tempRevenues.filter(r => doctorClinicIds.includes(r.clinic_id));
+        }
+
         // 1. Patient Name filter
         if (patientNameFilter) {
             tempRevenues = tempRevenues.filter(r => 
@@ -24,13 +35,13 @@ const Reports: React.FC = () => {
             );
         }
 
-        // 2. Clinic filter
-        if (clinicFilter !== 'all') {
+        // 2. Clinic filter (for non-doctors)
+        if (user?.role !== Role.Doctor && clinicFilter !== 'all') {
             tempRevenues = tempRevenues.filter(r => r.clinic_id === parseInt(clinicFilter));
         }
 
-        // 3. Doctor filter
-        if (doctorFilter !== 'all') {
+        // 3. Doctor filter (for non-doctors)
+        if (user?.role !== Role.Doctor && doctorFilter !== 'all') {
             const selectedDoctorId = parseInt(doctorFilter);
             tempRevenues = tempRevenues.filter(r => {
                 const clinic = clinics.find(c => c.clinic_id === r.clinic_id);
@@ -54,7 +65,7 @@ const Reports: React.FC = () => {
         // Sort by most recent date
         return tempRevenues.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    }, [revenues, clinics, patientNameFilter, clinicFilter, doctorFilter, visitTypeFilter, startDate, endDate]);
+    }, [revenues, clinics, doctors, user, patientNameFilter, clinicFilter, doctorFilter, visitTypeFilter, startDate, endDate]);
 
     const totalFilteredAmount = useMemo(() => {
         return filteredRevenues.reduce((sum, r) => sum + r.amount, 0);
@@ -74,7 +85,15 @@ const Reports: React.FC = () => {
     };
 
     const getClinicName = (id: number) => clinics.find(c => c.clinic_id === id)?.clinic_name || 'N/A';
-    const getDoctorName = (id: number) => clinics.find(c => c.clinic_id === id)?.doctor_name || 'N/A';
+    
+    const getDoctorName = (clinicId: number): string => {
+        const clinic = clinics.find(c => c.clinic_id === clinicId);
+        if (clinic) {
+            const doctor = doctors.find(d => d.doctor_id === clinic.doctor_id);
+            return doctor ? doctor.doctor_name : 'N/A';
+        }
+        return 'N/A';
+    };
 
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md printable-area">
@@ -111,34 +130,38 @@ const Reports: React.FC = () => {
                         onChange={e => setPatientNameFilter(e.target.value)}
                     />
                 </div>
-                 <div>
-                    <label htmlFor="clinic-filter" className="sr-only">العيادة</label>
-                    <select
-                        id="clinic-filter"
-                        className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                        value={clinicFilter}
-                        onChange={e => setClinicFilter(e.target.value)}
-                    >
-                        <option value="all">كل العيادات</option>
-                        {clinics.map(clinic => (
-                            <option key={clinic.clinic_id} value={clinic.clinic_id}>{clinic.clinic_name}</option>
-                        ))}
-                    </select>
-                </div>
-                <div>
-                    <label htmlFor="doctor-filter" className="sr-only">الطبيب</label>
-                    <select
-                        id="doctor-filter"
-                        className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                        value={doctorFilter}
-                        onChange={e => setDoctorFilter(e.target.value)}
-                    >
-                        <option value="all">كل الأطباء</option>
-                        {doctors.map(doctor => (
-                            <option key={doctor.doctor_id} value={doctor.doctor_id}>{doctor.doctor_name}</option>
-                        ))}
-                    </select>
-                </div>
+                 {user?.role !== Role.Doctor && (
+                    <>
+                        <div>
+                            <label htmlFor="clinic-filter" className="sr-only">العيادة</label>
+                            <select
+                                id="clinic-filter"
+                                className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                value={clinicFilter}
+                                onChange={e => setClinicFilter(e.target.value)}
+                            >
+                                <option value="all">كل العيادات</option>
+                                {clinics.map(clinic => (
+                                    <option key={clinic.clinic_id} value={clinic.clinic_id}>{clinic.clinic_name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="doctor-filter" className="sr-only">الطبيب</label>
+                            <select
+                                id="doctor-filter"
+                                className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                value={doctorFilter}
+                                onChange={e => setDoctorFilter(e.target.value)}
+                            >
+                                <option value="all">كل الأطباء</option>
+                                {doctors.map(doctor => (
+                                    <option key={doctor.doctor_id} value={doctor.doctor_id}>{doctor.doctor_name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </>
+                 )}
                 <div>
                     <label htmlFor="visit-type-filter" className="sr-only">نوع الزيارة</label>
                     <select

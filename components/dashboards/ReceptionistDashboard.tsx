@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import StatCard from '../ui/StatCard';
 import { UserGroupIcon, ClockIcon, CalendarDaysIcon, PlusIcon, MagnifyingGlassIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/solid';
-import { VisitStatus, VisitType, Patient, Visit, Role } from '../../types';
+import { VisitStatus, VisitType, Patient, Visit, Role, Diagnosis } from '../../types';
 import Modal from '../ui/Modal';
 
 // Helper to get 'YYYY-MM-DD' from a Date object, respecting local timezone.
@@ -36,6 +36,8 @@ const ReceptionistDashboard: React.FC = () => {
         base_amount: 0,
         discount: '',
         revenue_date: today,
+        visit_time: '',
+        visit_date: today,
     };
     const [visitFormData, setVisitFormData] = useState(initialFormState);
     
@@ -46,6 +48,30 @@ const ReceptionistDashboard: React.FC = () => {
     const getDoctorName = (doctorId: number) => {
         return doctors.find(d => d.doctor_id === doctorId)?.doctor_name || 'N/A';
     };
+
+    const getEffectiveStatus = (visit: Visit): VisitStatus => {
+        const isDiagnosed = diagnoses.some(d => d.visit_id === visit.visit_id);
+        if (isDiagnosed && visit.status !== VisitStatus.Canceled) {
+            return VisitStatus.Completed;
+        }
+        return visit.status;
+    };
+
+    const waitingCountByClinic = useMemo(() => {
+        const today = getLocalYYYYMMDD(new Date());
+        const counts: { [key: number]: number } = {};
+
+        const waitingVisits = visits.filter(v => 
+            v.visit_date === today &&
+            (getEffectiveStatus(v) === VisitStatus.Waiting || getEffectiveStatus(v) === VisitStatus.InProgress)
+        );
+
+        waitingVisits.forEach(visit => {
+            counts[visit.clinic_id] = (counts[visit.clinic_id] || 0) + 1;
+        });
+
+        return counts;
+    }, [visits, diagnoses]);
 
     useEffect(() => {
         if (isAddVisitModalOpen && visitFormData.clinic_id && clinics.length > 0) {
@@ -63,8 +89,7 @@ const ReceptionistDashboard: React.FC = () => {
     
     const waitingPatients = visits.filter(v => 
         v.visit_date === today &&
-        (v.status === VisitStatus.Waiting || v.status === VisitStatus.InProgress) &&
-        !diagnoses.some(d => d.visit_id === v.visit_id)
+        (getEffectiveStatus(v) === VisitStatus.Waiting || getEffectiveStatus(v) === VisitStatus.InProgress)
     ).length;
 
     const filteredPatients = patients.filter(p =>
@@ -117,6 +142,8 @@ const ReceptionistDashboard: React.FC = () => {
                 patient_id: selectedPatient.patient_id,
                 clinic_id: visitFormData.clinic_id,
                 visit_type: visitFormData.visit_type,
+                visit_time: visitFormData.visit_time,
+                visit_date: visitFormData.visit_date,
             });
     
             // This code runs only on successful visit creation
@@ -164,6 +191,7 @@ const ReceptionistDashboard: React.FC = () => {
             clinic_id: initialClinicId,
             base_amount: initialPrice,
             revenue_date: today,
+            visit_date: today,
         });
         newlyCreatedVisitRef.current = null; // Reset ref when opening modal
         setModalMode('visit');
@@ -293,7 +321,14 @@ const ReceptionistDashboard: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">العيادة</label>
                                 <select name="clinic_id" value={visitFormData.clinic_id} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" required >
-                                    {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name} - {getDoctorName(c.doctor_id)}</option>)}
+                                    {clinics.map(c => {
+                                        const waitingCount = waitingCountByClinic[c.clinic_id] || 0;
+                                        return (
+                                            <option key={c.clinic_id} value={c.clinic_id}>
+                                                {c.clinic_name} - {getDoctorName(c.doctor_id)} (الانتظار: {waitingCount})
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
                             <div>
@@ -303,9 +338,13 @@ const ReceptionistDashboard: React.FC = () => {
                                     <option value={VisitType.FollowUp}>متابعة</option>
                                 </select>
                             </div>
-                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">تاريخ الزيارة</label>
-                                <input type="text" value={today} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-600 dark:border-gray-500" readOnly />
+                             <div>
+                                <label htmlFor="visit_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">تاريخ الزيارة</label>
+                                <input id="visit_date" type="date" name="visit_date" value={visitFormData.visit_date} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                            </div>
+                            <div>
+                                <label htmlFor="visit_time" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">وقت الزيارة (اختياري)</label>
+                                <input id="visit_time" type="time" name="visit_time" value={visitFormData.visit_time || ''} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                             </div>
                         </div>
                         <div className="pt-4">
@@ -341,7 +380,14 @@ const ReceptionistDashboard: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">العيادة</label>
                                 <select name="clinic_id" value={visitFormData.clinic_id} onChange={handleVisitFormChange} className="w-full p-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" required >
-                                    {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name} - {getDoctorName(c.doctor_id)}</option>)}
+                                    {clinics.map(c => {
+                                        const waitingCount = waitingCountByClinic[c.clinic_id] || 0;
+                                        return (
+                                            <option key={c.clinic_id} value={c.clinic_id}>
+                                                {c.clinic_name} - {getDoctorName(c.doctor_id)} (الانتظار: {waitingCount})
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
                             <div>

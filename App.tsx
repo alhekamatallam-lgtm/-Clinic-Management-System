@@ -18,6 +18,7 @@ import DailyClinicReport from './pages/DailyClinicReport';
 import Settings from './pages/Settings';
 import Documentation from './pages/Documentation';
 import Optimization from './pages/Optimization';
+import { Role } from './types';
 
 const App: React.FC = () => {
   const { user, currentView, loading, error } = useApp();
@@ -87,6 +88,10 @@ const App: React.FC = () => {
 
   if (!user) {
     return <Login />;
+  }
+
+  if (user.role === Role.QueueScreen) {
+    return <Queue />;
   }
 
   return (

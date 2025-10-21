@@ -19,9 +19,9 @@ const DailyClinicReport: React.FC = () => {
         const dailyVisits = visits.filter(v => v.visit_date === selectedDate);
         const dailyRevenues = revenues.filter(r => r.date === selectedDate);
 
-        // Filter clinics based on user role. Doctors see only their own clinic.
-        const clinicsToReport = (user?.role === Role.Doctor && user.clinic_id)
-            ? clinics.filter(c => c.clinic_id === user.clinic_id)
+        // Filter clinics based on user role. Doctors see only clinics they are assigned to.
+        const clinicsToReport = (user?.role === Role.Doctor && user.doctor_id)
+            ? clinics.filter(c => c.doctor_id === user.doctor_id)
             : clinics;
 
         return clinicsToReport.map(clinic => {

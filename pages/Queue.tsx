@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { VisitStatus, Role, Diagnosis, Visit, Patient } from '../types';
-import { PlusCircleIcon, PencilSquareIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/solid';
+import { PlusCircleIcon, PencilSquareIcon, ClipboardDocumentListIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/solid';
 import Modal from '../components/ui/Modal';
 
 
@@ -24,7 +24,7 @@ const translateVisitStatus = (status: VisitStatus): string => {
 };
 
 const Queue: React.FC = () => {
-    const { user, visits, patients, clinics, diagnoses, setView, addDiagnosis, updateVisitStatus } = useApp();
+    const { user, visits, patients, clinics, diagnoses, setView, addDiagnosis, updateVisitStatus, logout } = useApp();
 
     // State for modals
     const [isDiagnosisModalOpen, setDiagnosisModalOpen] = useState(false);
@@ -43,23 +43,30 @@ const Queue: React.FC = () => {
 
 
     const today = getLocalYYYYMMDD(new Date());
+    
+    const getEffectiveStatus = (visit: Visit): VisitStatus => {
+        const isDiagnosed = diagnoses.some(d => d.visit_id === visit.visit_id);
+        if (isDiagnosed && visit.status !== VisitStatus.Canceled) {
+            return VisitStatus.Completed;
+        }
+        return visit.status;
+    };
 
     const waitingVisits = visits
         .filter(v => {
             const isToday = v.visit_date === today;
-            const isWaitingStatus = v.status === VisitStatus.Waiting || v.status === VisitStatus.InProgress;
-            const isDiagnosed = diagnoses.some(d => d.visit_id === v.visit_id);
-
-            // Base conditions to be excluded from the queue
-            if (!isToday || !isWaitingStatus || isDiagnosed) {
+            if (!isToday) {
                 return false;
             }
 
+            const effectiveStatus = getEffectiveStatus(v);
+            if (effectiveStatus !== VisitStatus.Waiting && effectiveStatus !== VisitStatus.InProgress) {
+                 return false;
+            }
+            
             // Role-specific filtering (for doctors viewing their own queue)
             if (user?.role === Role.Doctor) {
-                // Find the clinic associated with the visit
                 const clinicForVisit = clinics.find(c => c.clinic_id === v.clinic_id);
-                // Check if that clinic is assigned to the current doctor user
                 return clinicForVisit && clinicForVisit.doctor_id === user.doctor_id;
             }
             
@@ -128,7 +135,18 @@ const Queue: React.FC = () => {
 
 
     return (
-        <div>
+        <div className="relative min-h-screen bg-gray-100 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
+            {user?.role === Role.QueueScreen && (
+                <button
+                    onClick={logout}
+                    className="no-print absolute top-4 left-4 z-10 flex items-center bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 transition-colors shadow-md dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                    title="تسجيل الخروج"
+                >
+                    <ArrowRightOnRectangleIcon className="h-5 w-5 ml-2" />
+                    <span>خروج</span>
+                </button>
+            )}
+
             <div className="flex justify-between items-center mb-8 no-print">
                 <h1 className="text-4xl font-bold text-amber-800 dark:text-amber-300">شاشة الانتظار</h1>
                  {(user?.role === Role.Reception || user?.role === Role.Manager) && (

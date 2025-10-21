@@ -225,6 +225,7 @@ const Visits: React.FC = () => {
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">اسم المريض</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300 hidden sm:table-cell">العيادة</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300 hidden sm:table-cell">التاريخ</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300 hidden sm:table-cell">الوقت</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300 hidden lg:table-cell">رقم الانتظار</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">الحالة</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300 hidden lg:table-cell">نوع الزيارة</th>
@@ -241,6 +242,7 @@ const Visits: React.FC = () => {
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300 font-medium">{getPatientName(visit.patient_id)}</td>
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden sm:table-cell">{getClinicName(visit.clinic_id)}</td>
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden sm:table-cell">{visit.visit_date}</td>
+                                    <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden sm:table-cell">{visit.visit_time || '—'}</td>
                                     <td className="p-3 text-sm text-gray-700 dark:text-gray-300 hidden lg:table-cell">{visit.queue_number}</td>
                                     <td className="p-3">
                                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(effectiveStatus)}`}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import Modal from '../components/ui/Modal';
-import { PlusIcon } from '@heroicons/react/24/solid';
+import { PlusIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { VisitType, Patient } from '../types';
 
 // Helper to get 'YYYY-MM-DD' from a Date object, respecting local timezone.
@@ -17,6 +17,13 @@ const Revenues: React.FC = () => {
     
     const [isAddModalOpen, setAddModalOpen] = useState(false);
     const today = getLocalYYYYMMDD(new Date());
+
+    // State for filters
+    const [patientNameFilter, setPatientNameFilter] = useState<string>('');
+    const [clinicFilter, setClinicFilter] = useState<string>('all');
+    const [doctorFilter, setDoctorFilter] = useState<string>('all');
+    const [startDate, setStartDate] = useState<string>('');
+    const [endDate, setEndDate] = useState<string>('');
 
     const initialFormState = {
         patient_id: null as number | null,
@@ -37,15 +44,49 @@ const Revenues: React.FC = () => {
     const baseAmount = parseFloat(formData.amount) || 0;
     const discount = parseFloat(formData.discount) || 0;
     const amountAfterDiscount = Math.max(0, baseAmount - discount);
+    
+    const filteredRevenues = useMemo(() => {
+        let tempRevenues = [...revenues];
 
-    const sortedRevenues = useMemo(() => [...revenues].sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        if (isNaN(dateA)) return 1;
-        if (isNaN(dateB)) return -1;
-        // Also sort by ID for same-day entries
-        return dateB - dateA || b.revenue_id - a.revenue_id;
-    }), [revenues]);
+        // 1. Patient Name filter
+        if (patientNameFilter) {
+            tempRevenues = tempRevenues.filter(r => 
+                r.patient_name.toLowerCase().includes(patientNameFilter.toLowerCase())
+            );
+        }
+
+        // 2. Clinic filter
+        if (clinicFilter !== 'all') {
+            tempRevenues = tempRevenues.filter(r => r.clinic_id === parseInt(clinicFilter));
+        }
+        
+        // 3. Doctor filter
+        if (doctorFilter !== 'all') {
+            const selectedDoctorId = parseInt(doctorFilter);
+            tempRevenues = tempRevenues.filter(r => {
+                const clinic = clinics.find(c => c.clinic_id === r.clinic_id);
+                return clinic && clinic.doctor_id === selectedDoctorId;
+            });
+        }
+
+        // 4. Date range filter
+        if (startDate) {
+            tempRevenues = tempRevenues.filter(r => r.date >= startDate);
+        }
+        if (endDate) {
+            tempRevenues = tempRevenues.filter(r => r.date <= endDate);
+        }
+
+        // Sort by most recent date then by ID
+        return tempRevenues.sort((a, b) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            if (dateB !== dateA) return dateB - dateA;
+            return b.revenue_id - a.revenue_id;
+        });
+
+    }, [revenues, clinics, patientNameFilter, clinicFilter, doctorFilter, startDate, endDate]);
+
 
     const filteredPatients = formData.patient_name
         ? patients.filter(p => p.name.toLowerCase().includes(formData.patient_name.toLowerCase()))
@@ -53,8 +94,13 @@ const Revenues: React.FC = () => {
 
     const getClinicName = (id: number) => clinics.find(c => c.clinic_id === id)?.clinic_name || 'N/A';
     
-    const getDoctorName = (doctorId: number) => {
-        return doctors.find(d => d.doctor_id === doctorId)?.doctor_name || 'N/A';
+    const getDoctorNameForClinic = (clinicId: number): string => {
+        const clinic = clinics.find(c => c.clinic_id === clinicId);
+        if (clinic) {
+            const doctor = doctors.find(d => d.doctor_id === clinic.doctor_id);
+            return doctor ? doctor.doctor_name : 'N/A';
+        }
+        return 'N/A';
     };
 
     const handleOpenModal = () => {
@@ -68,6 +114,14 @@ const Revenues: React.FC = () => {
     const handleCloseModal = () => {
         setAddModalOpen(false);
         setIsPatientDropdownOpen(false);
+    };
+    
+    const resetFilters = () => {
+        setPatientNameFilter('');
+        setClinicFilter('all');
+        setDoctorFilter('all');
+        setStartDate('');
+        setEndDate('');
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -162,6 +216,61 @@ const Revenues: React.FC = () => {
                     إضافة إيراد جديد
                 </button>
             </div>
+            
+            {/* Filters Section */}
+            <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg mb-6 flex flex-wrap items-center gap-4">
+                <div className="flex items-center text-gray-600 dark:text-gray-300 font-semibold">
+                    <FunnelIcon className="h-5 w-5 ml-2 text-gray-400 dark:text-gray-500" />
+                    <span>تصفية حسب:</span>
+                </div>
+                <input
+                    type="text"
+                    placeholder="ابحث باسم المريض..."
+                    className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    value={patientNameFilter}
+                    onChange={e => setPatientNameFilter(e.target.value)}
+                />
+                <select
+                    className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    value={clinicFilter}
+                    onChange={e => setClinicFilter(e.target.value)}
+                >
+                    <option value="all">كل العيادات</option>
+                    {clinics.map(clinic => (
+                        <option key={clinic.clinic_id} value={clinic.clinic_id}>{clinic.clinic_name}</option>
+                    ))}
+                </select>
+                <select
+                    className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    value={doctorFilter}
+                    onChange={e => setDoctorFilter(e.target.value)}
+                >
+                    <option value="all">كل الأطباء</option>
+                    {doctors.map(doctor => (
+                        <option key={doctor.doctor_id} value={doctor.doctor_id}>{doctor.doctor_name}</option>
+                    ))}
+                </select>
+                <input 
+                    type="date" 
+                    className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                />
+                 <input 
+                    type="date" 
+                    className="p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    value={endDate}
+                    onChange={e => setEndDate(e.target.value)}
+                />
+                <button 
+                    onClick={resetFilters} 
+                    className="flex items-center bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                >
+                    <XMarkIcon className="h-4 w-4 ml-1" />
+                    مسح
+                </button>
+            </div>
+
 
             {/* Desktop Table View */}
             <div className="overflow-x-auto hidden md:block">
@@ -171,6 +280,7 @@ const Revenues: React.FC = () => {
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">#</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">اسم المريض</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">العيادة</th>
+                            <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">اسم الطبيب</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">المبلغ</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">التاريخ</th>
                             <th className="p-3 text-sm font-semibold tracking-wide text-gray-700 dark:text-gray-300">نوع الزيارة</th>
@@ -178,11 +288,12 @@ const Revenues: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {sortedRevenues.map(revenue => (
+                        {filteredRevenues.map(revenue => (
                             <tr key={revenue.revenue_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.revenue_id}</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.patient_name}</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{getClinicName(revenue.clinic_id)}</td>
+                                <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{getDoctorNameForClinic(revenue.clinic_id)}</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300 font-bold">{revenue.amount} ريال</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.date}</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.type}</td>
@@ -195,12 +306,13 @@ const Revenues: React.FC = () => {
 
             {/* Mobile Card View */}
             <div className="space-y-4 md:hidden">
-                {sortedRevenues.map(revenue => (
+                {filteredRevenues.map(revenue => (
                     <div key={revenue.revenue_id} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg shadow">
                         <div className="flex justify-between items-start">
                             <div className="flex-grow">
                                 <p className="font-bold text-lg text-gray-800 dark:text-gray-200">{revenue.patient_name}</p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">{getClinicName(revenue.clinic_id)}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">الطبيب: {getDoctorNameForClinic(revenue.clinic_id)}</p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">{revenue.date}</p>
                             </div>
                             <div className="text-left flex-shrink-0 pl-2">
@@ -261,7 +373,7 @@ const Revenues: React.FC = () => {
                                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                 required
                             >
-                                {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name} - {getDoctorName(c.doctor_id)}</option>)}
+                                {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name} - {getDoctorNameForClinic(c.clinic_id)}</option>)}
                             </select>
                         </div>
                         <div>

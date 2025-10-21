@@ -7,7 +7,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfeigTybRITqPkWkc7I
 // Backend column mapping, used to parse array responses from the API
 const COLUMN_MAPPING = {
     Patients: ['patient_id','name','dob','gender','phone','address'],
-    Visits: ['visit_id','patient_id','clinic_id','visit_date','queue_number','status','visit_type'],
+    Visits: ['visit_id','patient_id','clinic_id','visit_date','queue_number','status','visit_type','visit_time'],
     Diagnosis: ['diagnosis_id','visit_id','doctor','diagnosis','prescription','labs_needed','notes'],
     Revenues: ['revenue_id','visit_id','patient_id','patient_name','clinic_id','amount','date','type','notes'],
     Users: ['user_id', 'username', 'password', 'role', 'clinic_id', 'clinic', 'doctor_id', 'doctor_name', 'Name', 'status'],
@@ -73,7 +73,7 @@ interface AppContextType {
     doctors: Doctor[];
     optimizations: Optimization[];
     addPatient: (patient: Omit<Patient, 'patient_id'>) => Promise<void>;
-    addVisit: (visit: Omit<Visit, 'visit_id' | 'visit_date' | 'queue_number' | 'status'>) => Promise<Visit>;
+    addVisit: (visit: Omit<Visit, 'visit_id' | 'queue_number' | 'status'>) => Promise<Visit>;
     addDiagnosis: (diagnosis: Omit<Diagnosis, 'diagnosis_id'>) => Promise<void>;
     addManualRevenue: (revenue: Omit<Revenue, 'revenue_id'>) => Promise<boolean>;
     addDoctor: (doctor: Omit<Doctor, 'doctor_id'>) => Promise<void>;
@@ -392,7 +392,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return success;
     };
 
-    const addVisit = async (visitData: Omit<Visit, 'visit_id' | 'visit_date' | 'queue_number' | 'status'>): Promise<Visit> => {
+    const addVisit = async (visitData: Omit<Visit, 'visit_id' | 'queue_number' | 'status'>): Promise<Visit> => {
         if (isAddingVisit) throw new Error("لا يمكن إضافة زيارة أخرى أثناء معالجة الطلب الحالي.");
         setIsAddingVisit(true);
     
@@ -408,20 +408,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 visit_date: formatDateToLocalYYYYMMDD(v.visit_date)
             }));
             
-            const today = formatDateToLocalYYYYMMDD(new Date());
+            const visitDate = visitData.visit_date;
 
-            const visitsForClinicToday = currentVisits.filter(v => 
-                v.clinic_id === visitData.clinic_id && v.visit_date === today
+            const visitsForClinicOnDate = currentVisits.filter(v => 
+                v.clinic_id === visitData.clinic_id && v.visit_date === visitDate
             );
-            const newQueueNumber = visitsForClinicToday.length + 1;
+            const newQueueNumber = visitsForClinicOnDate.length + 1;
     
             const visitToSend = {
                 patient_id: visitData.patient_id,
                 clinic_id: visitData.clinic_id,
-                visit_date: today,
+                visit_date: visitDate,
                 queue_number: newQueueNumber,
                 status: VisitStatus.Waiting,
                 visit_type: visitData.visit_type,
+                visit_time: visitData.visit_time || '',
             };
             const visitResult = await postData('Visits', visitToSend);
             
@@ -453,7 +454,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 v.clinic_id === visitToSend.clinic_id &&
                 v.visit_date === visitToSend.visit_date &&
                 v.queue_number === visitToSend.queue_number &&
-                v.visit_type === visitToSend.visit_type
+                v.visit_type === visitToSend.visit_type &&
+                v.visit_time === visitToSend.visit_time
             );
             
             if (createdVisit) {

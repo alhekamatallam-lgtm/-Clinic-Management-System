@@ -9,6 +9,7 @@ const translateRole = (role: Role) => {
         case Role.Manager: return 'مدير';
         case Role.Doctor: return 'طبيب';
         case Role.Reception: return 'موظف استقبال';
+        case Role.QueueScreen: return 'شاشة عرض الانتظار';
         default: return role;
     }
 }
@@ -271,6 +272,7 @@ const Users: React.FC = () => {
                             <option value={Role.Reception}>موظف استقبال</option>
                             <option value={Role.Doctor}>طبيب</option>
                             <option value={Role.Manager}>مدير</option>
+                            <option value={Role.QueueScreen}>شاشة عرض الانتظار</option>
                         </select>
                     </div>
 
