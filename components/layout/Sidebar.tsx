@@ -53,7 +53,7 @@ const Sidebar: React.FC = () => {
                 <ChartBarIcon className="h-8 w-8 text-teal-300 flex-shrink-0"/>
                 {isSidebarOpen && <h1 className="text-xl font-bold ml-2 text-center whitespace-nowrap">مستوصف الراجحي</h1>}
             </div>
-            <nav className="flex-1">
+            <nav className="flex-1 overflow-y-auto pb-4 min-h-0">
                 <ul className="space-y-2">
                     {filteredNavItems.map(item => {
                         // Group with sub-items (Reports)
