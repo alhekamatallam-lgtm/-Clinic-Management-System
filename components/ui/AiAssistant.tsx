@@ -178,67 +178,25 @@ const AiAssistant: React.FC = () => {
 
     const systemContext = useMemo(() => {
         const documentationContext = formatDocumentation(documentationData);
-        const clinicsDoctorsInfo = clinics.map(clinic => {
-            const doctor = doctors.find(d => d.doctor_id === clinic.doctor_id);
-            return ` - عيادة ${clinic.clinic_name} (الطبيب: ${doctor ? doctor.doctor_name : 'غير محدد'})`;
-        }).join('\n');
         const today = getLocalYYYYMMDD(new Date());
-        
+
+        // Simplified dynamic data
+        const patientCount = patients.length;
+        const clinicsCount = clinics.length;
+        const doctorsCount = doctors.length;
+        const clinicsDoctorsInfo = `يوجد في النظام ${clinicsCount} عيادة و ${doctorsCount} طبيب. يمكنك السؤال عن تفاصيل عيادة أو طبيب معين، أو الاطلاع على قائمة العيادات والأطباء في الصفحات المخصصة لها.`;
+
         const waitingVisits = visits.filter(v => {
             const isToday = v.visit_date === today;
             const isWaitingStatus = v.status === 'Waiting' || v.status === 'In Progress';
             const isDiagnosed = diagnoses.some(d => d.visit_id === v.visit_id);
             return isToday && isWaitingStatus && !isDiagnosed;
         });
-        const visitsByClinic = waitingVisits.reduce((acc, visit) => {
-            const clinicId = visit.clinic_id;
-            if (!acc[clinicId]) {
-                acc[clinicId] = 0;
-            }
-            acc[clinicId]++;
-            return acc;
-        }, {} as Record<number, number>);
-        
-        let queueInfo = "لا يوجد مرضى في قائمة الانتظار حالياً.";
-        if (Object.keys(visitsByClinic).length > 0) {
-            queueInfo = "قائمة الانتظار الحالية:\n" + Object.entries(visitsByClinic).map(([clinicId, count]) => {
-                const clinic = clinics.find(c => c.clinic_id === Number(clinicId));
-                if (!clinic) return null;
-                const doctor = doctors.find(d => d.doctor_id === clinic.doctor_id);
-                const clinicName = clinic.clinic_name;
-                const doctorName = doctor ? doctor.doctor_name : 'غير محدد';
-                const caseWord = count === 1 ? 'حالة واحدة' : count === 2 ? 'حالتان' : count <= 10 ? `${count} حالات` : `${count} حالة`;
-                return ` - عيادة ${clinicName} (الطبيب: ${doctorName}): ${caseWord} في الانتظار.`;
-            }).filter(Boolean).join('\n');
-        }
+        const queueInfo = `يوجد حالياً ${waitingVisits.length} مريض في قوائم الانتظار الإجمالية. يمكن للمستخدمين عرض التفاصيل في لوحة التحكم أو شاشة الانتظار.`;
 
         const todaysRevenues = revenues.filter(r => r.date === today);
         const totalTodaysRevenue = todaysRevenues.reduce((sum, r) => sum + r.amount, 0);
-        const revenueByClinicToday = clinics.map(clinic => {
-            const clinicRevenue = todaysRevenues.filter(r => r.clinic_id === clinic.clinic_id).reduce((sum, r) => sum + r.amount, 0);
-            return { name: clinic.clinic_name, total: clinicRevenue };
-        }).filter(c => c.total > 0);
-
-        let dailyRevenueInfo = `إجمالي إيرادات اليوم هو ${totalTodaysRevenue.toFixed(2)} ريال.`;
-        if (revenueByClinicToday.length > 0) {
-            dailyRevenueInfo += "\nتفاصيل إيرادات اليوم حسب العيادة:\n" + revenueByClinicToday.map(c => ` - ${c.name}: ${c.total.toFixed(2)} ريال`).join('\n');
-        }
-        
-        const revenueByDoctor = doctors.map(doctor => {
-            const doctorClinics = clinics.filter(c => c.doctor_id === doctor.doctor_id);
-            const doctorClinicIds = doctorClinics.map(c => c.clinic_id);
-            const totalDoctorRevenue = revenues.filter(r => doctorClinicIds.includes(r.clinic_id)).reduce((sum, r) => sum + r.amount, 0);
-            return { name: doctor.doctor_name, total: totalDoctorRevenue };
-        }).filter(d => d.total > 0);
-
-        let totalRevenueByDoctorInfo = "";
-        if (revenueByDoctor.length > 0) {
-            totalRevenueByDoctorInfo = "إجمالي الإيرادات الكلي لكل طبيب:\n" + revenueByDoctor.map(d => ` - ${d.name}: ${d.total.toFixed(2)} ريال`).join('\n');
-        }
-        
-        const revenueInfo = `${dailyRevenueInfo}\n\n${totalRevenueByDoctorInfo}\nملاحظة: إذا سأل المستخدم عن إيراد طبيب بدون تحديد تاريخ، استخدم إجمالي الإيرادات الكلي. إذا حدد "اليوم"، استخدم إيرادات اليوم.`;
-        
-        const patientCount = patients.length;
+        const revenueInfo = `إجمالي إيرادات اليوم هو ${totalTodaysRevenue.toFixed(2)} ريال. للحصول على تفاصيل، يجب على المدير أو موظف الاستقبال زيارة صفحة التقارير.`;
         
         const bookingPermissions = `
 --- صلاحيات وإجراءات الحجز (للمدير والاستقبال) ---
@@ -255,12 +213,11 @@ const AiAssistant: React.FC = () => {
     - **إذا وافق المستخدم:** اطلب المعلومات الضرورية بقول: "حسنًا. ما هو رقم هاتف المريض؟". بعد الحصول على رقم الهاتف، استدعِ أداة 'addPatient' بالاسم ورقم الهاتف، ثم قل "ممتاز، تمت إضافة المريض بنجاح. لنكمل الحجز. في أي عيادة؟" وانتقل للخطوة 4.
     - **إذا رفض المستخدم:** قل "حسنًا، لا يمكن المتابعة بدون تحديد مريض. هل هناك شيء آخر أستطيع المساعدة به؟" وأنهِ محاولة الحجز.
 4.  **بعد تأكيد اسم المريض، اسأل عن العيادة:** قل "تمام. وفي أي عيادة؟".
-5.  **بعد اختيار العيادة، قدم معلومات مفيدة ثم اسأل عن نوع الزيارة:** ابحث في بيانات النظام عن الطبيب المناوب وعدد المنتظرين في هذه العيادة. ثم قل: "عيادة [اسم العيادة] مع الطبيب [اسم الطبيب]. يوجد حالياً [عدد] مرضى في قائمة الانتظار. ما هو نوع الزيارة، كشف جديد أم متابعة؟".
+5.  **بعد اختيار العيادة، اسأل عن نوع الزيارة:** قل "تمام، في عيادة [اسم العيادة]. ما هو نوع الزيارة، كشف جديد أم متابعة؟". يمكنك إبلاغ المستخدم بأن تفاصيل الانتظار والطبيب المناوب تظهر في لوحة التحكم.
 6.  **بعد تحديد نوع الزيارة، اسأل عن التاريخ والوقت (إذا لزم الأمر):** إذا لم يذكر المستخدم تاريخًا، افترض أنه اليوم. اسأل "هل ترغب في تحديد وقت معين؟" إذا كان ذلك مناسبًا.
 7.  **قبل التنفيذ، لخص واطلب التأكيد النهائي:** قل "حسناً، للمراجعة: سيتم حجز موعد لـ [اسم المريض] في عيادة [اسم العيادة] كـ '[نوع الكشف]' بتاريخ [التاريخ]. هل أؤكد الحجز؟".
 8.  **عند الحصول على التأكيد فقط،** قم باستدعاء أداة 'addVisitAndRevenue' بالمعلومات المجمعة. لا تستدعِ الأداة أبدًا قبل التأكيد الصريح من المستخدم.
 `;
-
 
         const revenuePermissions = `
 --- صلاحيات الإيرادات (للمدير والاستقبال) ---
@@ -289,23 +246,14 @@ const AiAssistant: React.FC = () => {
         if (user?.role === 'doctor') {
             const doctorClinics = clinics.filter(c => c.doctor_id === user.doctor_id);
             const doctorClinicIds = doctorClinics.map(c => c.clinic_id);
-            const doctorWaitingVisits = waitingVisits.filter(v => doctorClinicIds.includes(v.clinic_id));
+            const doctorWaitingVisitsCount = waitingVisits.filter(v => doctorClinicIds.includes(v.clinic_id)).length;
             
-            let waitingListInfo = "لا يوجد مرضى في قائمة الانتظار الخاصة بك حالياً.";
-            if (doctorWaitingVisits.length > 0) {
-                waitingListInfo = doctorWaitingVisits.map(v => {
-                    const patient = patients.find(p => p.patient_id === v.patient_id);
-                    return ` - (الزيارة #${v.visit_id}) المريض: ${patient?.name || 'غير معروف'}, رقم الانتظار: ${v.queue_number}`;
-                }).join('\n');
-            }
-
             doctorContext = `
 --- صلاحيات ومهام الطبيب ---
 - بصفتك طبيباً، يمكنك استخدامي للمساعدة في تسجيل التشخيصات. يمكنك أن تطلب مني "تسجيل تشخيص للزيارة رقم 123" أو "اكتب تشخيص للمريض التالي".
 - سأقوم بسؤالك عن تفاصيل التشخيص (التشخيص، الوصفة، التحاليل، الملاحظات).
 - بعد أن تزودني بالمعلومات، سألخصها لك للتأكيد. بعد تأكيدك، سأقوم بحفظ التشخيص باستخدام أداة 'addDiagnosisForVisit'.
-- قائمة الانتظار الخاصة بك حالياً:
-${waitingListInfo}
+- يوجد في قائمة الانتظار الخاصة بك حالياً: ${doctorWaitingVisitsCount} مرضى. يمكنك رؤية القائمة الكاملة وتفاصيل الزيارات (مثل ID) في لوحة التحكم الخاصة بك.
 `;
         }
         
