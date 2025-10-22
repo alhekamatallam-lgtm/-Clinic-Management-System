@@ -295,7 +295,10 @@ ${revenueInfo}
         setMessages([]);
 
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+            const ai = new GoogleGenAI({ 
+                apiKey: process.env.API_KEY!,
+                client: 'gen-lang-client-0606178987'
+            });
             const tools: FunctionDeclaration[] = [addOptimizationTool];
              if (user?.role === 'manager' || user?.role === 'reception') {
                 tools.push(addVisitAndRevenueTool, addPatientTool);
