@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { HeartIcon, PaperAirplaneIcon, XMarkIcon, MicrophoneIcon } from '@heroicons/react/24/solid';
+import { HeartIcon, PaperAirplaneIcon, XMarkIcon, MicrophoneIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 import { GoogleGenAI, Chat, FunctionDeclaration, Type } from "@google/genai";
 import { useApp } from '../../contexts/AppContext';
 import { documentationData, DocSection } from '../../data/documentationData';
@@ -38,6 +38,8 @@ const AiAssistant: React.FC = () => {
     const recognitionRef = useRef<any>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const chatRef = useRef<Chat | null>(null);
+    const [apiKeyStatus, setApiKeyStatus] = useState<'unknown' | 'valid' | 'invalid'>('unknown');
+
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -180,7 +182,6 @@ const AiAssistant: React.FC = () => {
         const documentationContext = formatDocumentation(documentationData);
         const today = getLocalYYYYMMDD(new Date());
 
-        // Simplified dynamic data
         const patientCount = patients.length;
         const clinicsCount = clinics.length;
         const doctorsCount = doctors.length;
@@ -288,34 +289,53 @@ ${revenueInfo}
 
     }, [documentationData, clinics, doctors, visits, diagnoses, user, revenues, patients]);
     
-    useEffect(() => {
-        if (isOpen) {
-            try {
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-                const tools: FunctionDeclaration[] = [addOptimizationTool];
-                if (user?.role === 'manager' || user?.role === 'reception') {
-                    tools.push(addVisitAndRevenueTool, addPatientTool);
-                }
-                if (user?.role === 'manager') {
-                    tools.push(addUserTool);
-                }
-                if (user?.role === 'doctor') {
-                    tools.push(addDiagnosisForVisitTool);
-                }
+    const initializeChat = async () => {
+        setIsLoading(true);
+        setApiKeyStatus('unknown');
+        setMessages([]);
 
-                const chat = ai.chats.create({
-                    model: 'gemini-2.5-flash',
-                    config: {
-                        systemInstruction: systemContext,
-                        tools: [{ functionDeclarations: tools }],
-                    },
-                });
-                chatRef.current = chat;
-                setMessages([{ text: `مرحباً ${user?.Name}! أنا سالم، مساعدك الذكي لإدارة العيادة. كيف يمكنني المساعدة اليوم؟`, isUser: false }]);
-            } catch (e) {
-                console.error("Failed to initialize AI Chat:", e);
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+            const tools: FunctionDeclaration[] = [addOptimizationTool];
+             if (user?.role === 'manager' || user?.role === 'reception') {
+                tools.push(addVisitAndRevenueTool, addPatientTool);
+            }
+            if (user?.role === 'manager') {
+                tools.push(addUserTool);
+            }
+            if (user?.role === 'doctor') {
+                tools.push(addDiagnosisForVisitTool);
+            }
+
+            const chat = ai.chats.create({
+                model: 'gemini-2.5-flash',
+                config: {
+                    systemInstruction: systemContext,
+                    tools: [{ functionDeclarations: tools }],
+                },
+            });
+            chatRef.current = chat;
+            // Send a test message to validate the API key and setup
+            await chat.sendMessage({ message: 'مرحبا' }); 
+
+            setApiKeyStatus('valid');
+            setMessages([{ text: `مرحباً ${user?.Name}! أنا سالم، مساعدك الذكي لإدارة العيادة. كيف يمكنني المساعدة اليوم؟`, isUser: false }]);
+        } catch (e: any) {
+            console.error("Failed to initialize AI Chat:", e);
+            const errorMessage = e.message.toLowerCase();
+            if (errorMessage.includes('api key') || errorMessage.includes('permission') || errorMessage.includes('billing') || errorMessage.includes('not found')) {
+                setApiKeyStatus('invalid');
+            } else {
                 setMessages([{ text: "عذرًا، لم أتمكن من بدء المحادثة. يرجى المحاولة مرة أخرى.", isUser: false }]);
             }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    useEffect(() => {
+        if (isOpen) {
+            initializeChat();
         } else {
             chatRef.current = null;
         }
@@ -496,6 +516,111 @@ ${revenueInfo}
         }
     };
 
+    const renderChatContent = () => {
+        if (isLoading && apiKeyStatus === 'unknown') {
+            return (
+                <div className="flex-grow flex items-center justify-center">
+                     <div className="text-center">
+                        <div className="w-12 h-12 border-4 border-dashed rounded-full animate-spin border-teal-500 mx-auto"></div>
+                        <p className="mt-4 text-gray-500 dark:text-gray-400">جاري تهيئة سالم...</p>
+                    </div>
+                </div>
+            );
+        }
+
+        if (apiKeyStatus === 'invalid') {
+            return (
+                <div className="flex-grow flex flex-col items-center justify-center p-4 text-center">
+                    <ExclamationTriangleIcon className="h-12 w-12 text-red-400 mb-4" />
+                    <h4 className="font-bold text-lg text-red-700 dark:text-red-400">مشكلة في مفتاح API</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                        فشل تهيئة المساعد سالم. قد يكون السبب مشكلة في مفتاح API المستخدم أو عدم تفعيل الفوترة للمشروع.
+                    </p>
+                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                        للمزيد من المعلومات حول الفوترة، يمكنك زيارة{' '}
+                        <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="text-teal-500 underline">
+                            هذا الرابط
+                        </a>.
+                    </p>
+                    <button
+                        onClick={async () => {
+                            // @ts-ignore
+                            if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+                                // @ts-ignore
+                                await window.aistudio.openSelectKey();
+                                initializeChat();
+                            } else {
+                                alert("وظيفة تحديد المفتاح غير متاحة.");
+                            }
+                        }}
+                        className="mt-6 bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors"
+                    >
+                        تحديد مفتاح API والمحاولة مجدداً
+                    </button>
+                </div>
+            );
+        }
+
+        return (
+            <>
+                <div className="flex-grow p-4 overflow-y-auto space-y-4">
+                    {messages.map((msg, index) => (
+                        <div key={index} className={`flex items-end gap-2 ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
+                            {!msg.isUser && <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0 text-white font-bold">S</div>}
+                            <div className={`px-4 py-2 rounded-2xl max-w-[80%] ${msg.isUser ? 'bg-teal-500 text-white rounded-br-none' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'}`}>
+                                <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                            </div>
+                        </div>
+                    ))}
+                     {isLoading && apiKeyStatus === 'valid' && (
+                        <div className="flex items-end gap-2 justify-start">
+                            <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0 text-white font-bold">S</div>
+                            <div className="px-4 py-2 rounded-2xl bg-gray-200 dark:bg-gray-700 rounded-bl-none">
+                               <div className="flex items-center space-x-1 space-x-reverse">
+                                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+                                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+                               </div>
+                            </div>
+                        </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                </div>
+                 <div className="p-4 border-t dark:border-gray-700 flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex-grow">
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                                placeholder={isListening ? 'جاري الاستماع...' : "اسأل سالم أي شيء..."}
+                                className="w-full p-3 pl-12 pr-4 border border-gray-300 rounded-full focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                disabled={isLoading || isListening}
+                            />
+                            <button
+                                onClick={() => handleSend()}
+                                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-teal-500 text-white rounded-full hover:bg-teal-600 disabled:bg-gray-400"
+                                disabled={isLoading || !input.trim()}
+                                title="إرسال"
+                            >
+                                <PaperAirplaneIcon className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <button
+                            onClick={handleListen}
+                            className={`p-3 rounded-full transition-colors flex-shrink-0 ${isListening ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300'}`}
+                            title="تحدث"
+                            disabled={isLoading}
+                        >
+                            <MicrophoneIcon className="h-5 w-5" />
+                        </button>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
     if (!user) return null;
 
     return (
@@ -519,62 +644,7 @@ ${revenueInfo}
                             <XMarkIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
                         </button>
                     </div>
-
-                    <div className="flex-grow p-4 overflow-y-auto space-y-4">
-                        {messages.map((msg, index) => (
-                            <div key={index} className={`flex items-end gap-2 ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
-                                {!msg.isUser && <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0 text-white font-bold">S</div>}
-                                <div className={`px-4 py-2 rounded-2xl max-w-[80%] ${msg.isUser ? 'bg-teal-500 text-white rounded-br-none' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'}`}>
-                                    <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                                </div>
-                            </div>
-                        ))}
-                         {isLoading && (
-                            <div className="flex items-end gap-2 justify-start">
-                                <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0 text-white font-bold">S</div>
-                                <div className="px-4 py-2 rounded-2xl bg-gray-200 dark:bg-gray-700 rounded-bl-none">
-                                   <div className="flex items-center space-x-1 space-x-reverse">
-                                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
-                                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-                                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-                                   </div>
-                                </div>
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    <div className="p-4 border-t dark:border-gray-700 flex-shrink-0">
-                        <div className="flex items-center gap-2">
-                            <div className="relative flex-grow">
-                                <input
-                                    type="text"
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                                    placeholder={isListening ? 'جاري الاستماع...' : "اسأل سالم أي شيء..."}
-                                    className="w-full p-3 pl-12 pr-4 border border-gray-300 rounded-full focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    disabled={isLoading || isListening}
-                                />
-                                <button
-                                    onClick={() => handleSend()}
-                                    className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-teal-500 text-white rounded-full hover:bg-teal-600 disabled:bg-gray-400"
-                                    disabled={isLoading || !input.trim()}
-                                    title="إرسال"
-                                >
-                                    <PaperAirplaneIcon className="h-5 w-5" />
-                                </button>
-                            </div>
-                            <button
-                                onClick={handleListen}
-                                className={`p-3 rounded-full transition-colors flex-shrink-0 ${isListening ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300'}`}
-                                title="تحدث"
-                                disabled={isLoading}
-                            >
-                                <MicrophoneIcon className="h-5 w-5" />
-                            </button>
-                        </div>
-                    </div>
+                    {renderChatContent()}
                 </div>
             )}
         </>
