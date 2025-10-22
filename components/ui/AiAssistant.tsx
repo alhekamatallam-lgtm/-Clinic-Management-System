@@ -238,7 +238,7 @@ const AiAssistant: React.FC = () => {
         
         const revenueInfo = `${dailyRevenueInfo}\n\n${totalRevenueByDoctorInfo}\nملاحظة: إذا سأل المستخدم عن إيراد طبيب بدون تحديد تاريخ، استخدم إجمالي الإيرادات الكلي. إذا حدد "اليوم"، استخدم إيرادات اليوم.`;
         
-        const patientList = patients.map(p => p.name).join(', ');
+        const patientCount = patients.length;
         
         const bookingPermissions = `
 --- صلاحيات وإجراءات الحجز (للمدير والاستقبال) ---
@@ -317,7 +317,7 @@ ${documentationContext}
 --- نهاية الوثائق ---
 
 --- بيانات النظام الحية ---
-قائمة المرضى المسجلين: ${patientList}
+عدد المرضى المسجلين: ${patientCount}. يمكنك البحث عن أي مريض بالاسم عند الحاجة.
 تاريخ اليوم: ${today}
 العيادات والأطباء:
 ${clinicsDoctorsInfo}
@@ -504,42 +504,48 @@ ${revenueInfo}
             return;
         }
 
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            showNotification("متصفحك لا يدعم خاصية تحويل الكلام إلى نص.", 'error');
-            return;
+        try {
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showNotification("متصفحك لا يدعم خاصية تحويل الكلام إلى نص.", 'error');
+                return;
+            }
+
+            if (!recognitionRef.current) {
+                const recognition = new SpeechRecognition();
+                recognition.lang = 'ar-SA';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onstart = () => setIsListening(true);
+                recognition.onend = () => setIsListening(false);
+                
+                recognition.onerror = (event: any) => {
+                    console.error("Speech recognition error:", event.error);
+                    if (event.error === 'no-speech') {
+                        setMessages(prev => [...prev, { text: "لم أسمع أي شيء. يرجى النقر على الميكروفون والمحاولة مرة أخرى.", isUser: false }]);
+                    } else if (event.error === 'not-allowed') {
+                        showNotification("تم رفض إذن استخدام الميكروفون. يرجى تفعيله من إعدادات المتصفح.", 'error');
+                    } else {
+                        showNotification("حدث خطأ أثناء التعرف على الصوت. يرجى المحاولة مرة أخرى.", 'error');
+                    }
+                    setIsListening(false);
+                };
+
+                recognition.onresult = (event: any) => {
+                    const transcript = event.results[0][0].transcript;
+                    handleSend(transcript);
+                };
+                
+                recognitionRef.current = recognition;
+            }
+
+            recognitionRef.current.start();
+        } catch (e) {
+            console.error("Failed to start speech recognition:", e);
+            showNotification("لا يمكن بدء التعرف على الصوت. قد لا يكون مدعومًا أو مسموحًا به في هذا السياق.", 'error');
+            setIsListening(false);
         }
-
-        if (!recognitionRef.current) {
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'ar-SA';
-            recognition.continuous = false;
-            recognition.interimResults = false;
-
-            recognition.onstart = () => setIsListening(true);
-            recognition.onend = () => setIsListening(false);
-            
-            recognition.onerror = (event: any) => {
-                console.error("Speech recognition error:", event.error);
-                if (event.error === 'no-speech') {
-                    setMessages(prev => [...prev, { text: "لم أسمع أي شيء. يرجى النقر على الميكروفون والمحاولة مرة أخرى.", isUser: false }]);
-                } else if (event.error === 'not-allowed') {
-                    showNotification("تم رفض إذن استخدام الميكروفون. يرجى تفعيله من إعدادات المتصفح.", 'error');
-                } else {
-                    showNotification("حدث خطأ أثناء التعرف على الصوت. يرجى المحاولة مرة أخرى.", 'error');
-                }
-                setIsListening(false);
-            };
-
-            recognition.onresult = (event: any) => {
-                const transcript = event.results[0][0].transcript;
-                handleSend(transcript);
-            };
-            
-            recognitionRef.current = recognition;
-        }
-
-        recognitionRef.current.start();
     };
 
     if (!user) return null;

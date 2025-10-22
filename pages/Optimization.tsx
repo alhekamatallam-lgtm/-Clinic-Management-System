@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import Modal from '../components/ui/Modal';
-import { PlusIcon } from '@heroicons/react/24/solid';
+import { PlusIcon, ChevronRightIcon, ChevronLeftIcon } from '@heroicons/react/24/solid';
 
 const Optimization: React.FC = () => {
     const { user, optimizations, addOptimization, isAdding } = useApp();
@@ -9,6 +9,20 @@ const Optimization: React.FC = () => {
     const [suggestionText, setSuggestionText] = useState('');
     const [selectedPage, setSelectedPage] = useState('general');
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
+    // Pagination calculations
+    const totalPages = Math.ceil(optimizations.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentOptimizations = optimizations.slice(indexOfFirstItem, indexOfLastItem);
+
+    const handlePageChange = (pageNumber: number) => {
+        if (pageNumber < 1 || pageNumber > totalPages) return;
+        setCurrentPage(pageNumber);
+    };
 
     const pageOptions = [
         { value: 'dashboard', label: 'لوحة التحكم' },
@@ -50,6 +64,28 @@ const Optimization: React.FC = () => {
         handleCloseModal();
     };
 
+    const PaginationControls = () => {
+        if (totalPages <= 1) return null;
+        return (
+            <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4">
+                <span className="text-sm text-gray-700 dark:text-gray-400">
+                    عرض {indexOfFirstItem + 1} إلى {Math.min(indexOfLastItem, optimizations.length)} من أصل {optimizations.length} سجل
+                </span>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <ChevronRightIcon className="w-4 h-4" />
+                        <span className="hidden sm:inline">السابق</span>
+                    </button>
+                    <span className="text-sm text-gray-700 dark:text-gray-400">صفحة {currentPage} من {totalPages}</span>
+                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <span className="hidden sm:inline">التالي</span>
+                        <ChevronLeftIcon className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-6">
@@ -73,7 +109,7 @@ const Optimization: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {optimizations.map(opt => (
+                        {currentOptimizations.map(opt => (
                             <tr key={opt.optimization_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300 font-medium">{opt.name}</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{pageOptions.find(p => p.value === opt.page)?.label || opt.page}</td>
@@ -83,6 +119,8 @@ const Optimization: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            
+            <PaginationControls />
 
             <Modal title="إضافة اقتراح جديد" isOpen={isModalOpen} onClose={handleCloseModal}>
                 <form onSubmit={handleSubmit} className="space-y-4">

@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { FunnelIcon, XMarkIcon, PrinterIcon, DocumentTextIcon, ChartBarIcon } from '@heroicons/react/24/solid';
+import { FunnelIcon, XMarkIcon, PrinterIcon, DocumentTextIcon, ChartBarIcon, ChevronRightIcon, ChevronLeftIcon } from '@heroicons/react/24/solid';
 import { Visit, Patient, Clinic, Diagnosis, Doctor, Role } from '../types';
 
 interface ReportData {
@@ -23,6 +23,10 @@ const MedicalReport: React.FC = () => {
     
     // State for the report to be printed
     const [reportData, setReportData] = useState<ReportData | null>(null);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const visitsWithDiagnosis = useMemo(() => {
         const diagnosisVisitIds = new Set(diagnoses.map(d => d.visit_id));
@@ -74,6 +78,22 @@ const MedicalReport: React.FC = () => {
 
     }, [visitsWithDiagnosis, patients, clinics, patientNameFilter, clinicFilter, doctorFilter, startDate, endDate, user]);
 
+    // Reset page on filter change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [patientNameFilter, clinicFilter, doctorFilter, startDate, endDate]);
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredVisits.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentVisits = filteredVisits.slice(indexOfFirstItem, indexOfLastItem);
+
+    const handlePageChange = (pageNumber: number) => {
+        if (pageNumber < 1 || pageNumber > totalPages) return;
+        setCurrentPage(pageNumber);
+    };
+
     const resetFilters = () => {
         setPatientNameFilter('');
         setClinicFilter('all');
@@ -114,6 +134,28 @@ const MedicalReport: React.FC = () => {
         
         const doctorUser = users.find(u => u.username === diagnosis.doctor);
         return doctorUser?.Name || diagnosis.doctor; // Fallback to username
+    };
+
+    const PaginationControls = () => {
+        if (totalPages <= 1) return null;
+        return (
+            <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4 no-print">
+                <span className="text-sm text-gray-700 dark:text-gray-400">
+                    عرض {indexOfFirstItem + 1} إلى {Math.min(indexOfLastItem, filteredVisits.length)} من أصل {filteredVisits.length} سجل
+                </span>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <ChevronRightIcon className="w-4 h-4" />
+                        <span className="hidden sm:inline">السابق</span>
+                    </button>
+                    <span className="text-sm text-gray-700 dark:text-gray-400">صفحة {currentPage} من {totalPages}</span>
+                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <span className="hidden sm:inline">التالي</span>
+                        <ChevronLeftIcon className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        );
     };
 
     if (reportData) {
@@ -295,7 +337,7 @@ const MedicalReport: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {filteredVisits.length > 0 ? filteredVisits.map(visit => (
+                        {currentVisits.length > 0 ? currentVisits.map(visit => (
                             <tr key={visit.visit_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                 <td className="p-3">{getPatientName(visit.patient_id)}</td>
                                 <td className="p-3">{getClinicName(visit.clinic_id)}</td>
@@ -321,6 +363,7 @@ const MedicalReport: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            <PaginationControls />
         </div>
     );
 };

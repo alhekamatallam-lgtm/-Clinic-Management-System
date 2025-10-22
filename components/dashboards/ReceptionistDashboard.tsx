@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import StatCard from '../ui/StatCard';
-import { UserGroupIcon, ClockIcon, CalendarDaysIcon, PlusIcon, MagnifyingGlassIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/solid';
+import { UserGroupIcon, ClockIcon, CalendarDaysIcon, PlusIcon, MagnifyingGlassIcon, ClipboardDocumentListIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import { VisitStatus, VisitType, Patient, Visit, Role, Diagnosis } from '../../types';
 import Modal from '../ui/Modal';
 
@@ -23,7 +23,6 @@ const ReceptionistDashboard: React.FC = () => {
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [modalMode, setModalMode] = useState<'visit' | 'revenue'>('visit');
     
-    // Use a ref to track the newly created visit within the modal's lifecycle without causing re-renders.
     const newlyCreatedVisitRef = useRef<Visit | null>(null);
 
     const [newPatient, setNewPatient] = useState<Omit<Patient, 'patient_id'>>({ name: '', dob: '', gender: 'ذكر', phone: '', address: '' });
@@ -40,8 +39,11 @@ const ReceptionistDashboard: React.FC = () => {
         visit_date: today,
     };
     const [visitFormData, setVisitFormData] = useState(initialFormState);
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const patientsPerPage = 10;
     
-    // Derived values for calculation
     const visitDiscountValue = parseFloat(visitFormData.discount) || 0;
     const visitAmountAfterDiscount = Math.max(0, visitFormData.base_amount - visitDiscountValue);
     
@@ -92,10 +94,24 @@ const ReceptionistDashboard: React.FC = () => {
         (getEffectiveStatus(v) === VisitStatus.Waiting || getEffectiveStatus(v) === VisitStatus.InProgress)
     ).length;
 
-    const filteredPatients = patients.filter(p =>
+    const filteredPatients = useMemo(() => patients.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         String(p.phone).includes(searchTerm)
-    );
+    ), [patients, searchTerm]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
+
+    const indexOfLastPatient = currentPage * patientsPerPage;
+    const indexOfFirstPatient = indexOfLastPatient - patientsPerPage;
+    const currentPatients = filteredPatients.slice(indexOfFirstPatient, indexOfLastPatient);
+    const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
+
+    const paginate = (pageNumber: number) => {
+        if (pageNumber < 1 || pageNumber > totalPages) return;
+        setCurrentPage(pageNumber);
+    };
 
     const pastDiagnosesForSelectedPatient = useMemo(() => {
         if (!selectedPatient) return [];
@@ -131,7 +147,6 @@ const ReceptionistDashboard: React.FC = () => {
         e.preventDefault();
         if (!selectedPatient) return;
     
-        // Prevent creating a duplicate visit within the same modal session
         if (newlyCreatedVisitRef.current) {
             showNotification('تمت إضافة الزيارة بالفعل.', 'error');
             return;
@@ -146,12 +161,10 @@ const ReceptionistDashboard: React.FC = () => {
                 visit_date: visitFormData.visit_date,
             });
     
-            // This code runs only on successful visit creation
             newlyCreatedVisitRef.current = createdVisit;
             showNotification('تمت إضافة الزيارة بنجاح. الآن يمكنك تسجيل الإيراد.', 'success');
             setModalMode('revenue');
         } catch (error: any) {
-            // Handle any errors thrown by addVisit
             showNotification(error.message || 'حدث خطأ غير متوقع أثناء إضافة الزيارة.', 'error');
         }
     };
@@ -160,7 +173,6 @@ const ReceptionistDashboard: React.FC = () => {
         e.preventDefault();
         if (!selectedPatient) return;
         
-        // If a visit was just created in this modal session, link this revenue to it.
         const visitIdForRevenue = newlyCreatedVisitRef.current ? newlyCreatedVisitRef.current.visit_id : 0;
 
         const success = await addManualRevenue({
@@ -193,7 +205,7 @@ const ReceptionistDashboard: React.FC = () => {
             revenue_date: today,
             visit_date: today,
         });
-        newlyCreatedVisitRef.current = null; // Reset ref when opening modal
+        newlyCreatedVisitRef.current = null;
         setModalMode('visit');
         setAddVisitModalOpen(true);
     };
@@ -205,6 +217,25 @@ const ReceptionistDashboard: React.FC = () => {
             [name]: name === 'clinic_id' ? Number(value) : value,
         }));
     };
+
+    const PaginationControls = () => (
+        <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4">
+            <span className="text-sm text-gray-700 dark:text-gray-400">
+                عرض {indexOfFirstPatient + 1} إلى {Math.min(indexOfLastPatient, filteredPatients.length)} من أصل {filteredPatients.length} سجل
+            </span>
+            <div className="flex items-center gap-2">
+                <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                    <ChevronRightIcon className="w-4 h-4" />
+                    <span className="hidden sm:inline">السابق</span>
+                </button>
+                <span className="text-sm text-gray-700 dark:text-gray-400">صفحة {currentPage} من {totalPages}</span>
+                <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                    <span className="hidden sm:inline">التالي</span>
+                    <ChevronLeftIcon className="w-4 h-4" />
+                </button>
+            </div>
+        </div>
+    );
 
     return (
         <div>
@@ -247,7 +278,7 @@ const ReceptionistDashboard: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredPatients.map(patient => (
+                            {currentPatients.map(patient => (
                                 <tr key={patient.patient_id} className="border-b dark:border-gray-700">
                                     <td className="p-3">{patient.name}</td>
                                     <td className="p-3">{patient.phone}</td>
@@ -261,6 +292,7 @@ const ReceptionistDashboard: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+                {totalPages > 1 && <PaginationControls />}
             </div>
 
             <Modal title="إضافة مريض جديد" isOpen={isAddPatientModalOpen} onClose={() => setAddPatientModalOpen(false)}>

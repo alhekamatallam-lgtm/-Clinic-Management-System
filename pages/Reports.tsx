@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { FunnelIcon, XMarkIcon, PrinterIcon } from '@heroicons/react/24/solid';
+import { FunnelIcon, XMarkIcon, PrinterIcon, ChevronRightIcon, ChevronLeftIcon } from '@heroicons/react/24/solid';
 import { VisitType, Role } from '../types';
 
 const Reports: React.FC = () => {
@@ -13,6 +13,10 @@ const Reports: React.FC = () => {
     const [visitTypeFilter, setVisitTypeFilter] = useState<string>('all');
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     
     const filteredRevenues = useMemo(() => {
         let tempRevenues = [...revenues];
@@ -67,6 +71,22 @@ const Reports: React.FC = () => {
 
     }, [revenues, clinics, doctors, user, patientNameFilter, clinicFilter, doctorFilter, visitTypeFilter, startDate, endDate]);
 
+    // Reset page on filter change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [patientNameFilter, clinicFilter, doctorFilter, visitTypeFilter, startDate, endDate]);
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredRevenues.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentRevenues = filteredRevenues.slice(indexOfFirstItem, indexOfLastItem);
+
+    const handlePageChange = (pageNumber: number) => {
+        if (pageNumber < 1 || pageNumber > totalPages) return;
+        setCurrentPage(pageNumber);
+    };
+
     const totalFilteredAmount = useMemo(() => {
         return filteredRevenues.reduce((sum, r) => sum + r.amount, 0);
     }, [filteredRevenues]);
@@ -93,6 +113,28 @@ const Reports: React.FC = () => {
             return doctor ? doctor.doctor_name : 'N/A';
         }
         return 'N/A';
+    };
+
+    const PaginationControls = () => {
+        if (totalPages <= 1) return null;
+        return (
+            <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4 no-print">
+                <span className="text-sm text-gray-700 dark:text-gray-400">
+                    عرض {indexOfFirstItem + 1} إلى {Math.min(indexOfLastItem, filteredRevenues.length)} من أصل {filteredRevenues.length} سجل
+                </span>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <ChevronRightIcon className="w-4 h-4" />
+                        <span className="hidden sm:inline">السابق</span>
+                    </button>
+                    <span className="text-sm text-gray-700 dark:text-gray-400">صفحة {currentPage} من {totalPages}</span>
+                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <span className="hidden sm:inline">التالي</span>
+                        <ChevronLeftIcon className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -219,7 +261,7 @@ const Reports: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {filteredRevenues.map(revenue => (
+                        {currentRevenues.map(revenue => (
                             <tr key={revenue.revenue_id}>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.revenue_id}</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{revenue.patient_name}</td>
@@ -239,6 +281,8 @@ const Reports: React.FC = () => {
                     </tfoot>
                 </table>
             </div>
+
+            <PaginationControls />
         </div>
     );
 };

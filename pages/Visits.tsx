@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { VisitStatus, Role, Diagnosis, Visit, Patient } from '../types';
 import Modal from '../components/ui/Modal';
-import { PencilSquareIcon, FunnelIcon, XMarkIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/solid';
+import { PencilSquareIcon, FunnelIcon, XMarkIcon, ClipboardDocumentListIcon, ChevronRightIcon, ChevronLeftIcon } from '@heroicons/react/24/solid';
 
 const translateVisitStatus = (status: VisitStatus): string => {
     switch (status) {
@@ -37,6 +37,10 @@ const Visits: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const getEffectiveStatus = (visit: Visit): VisitStatus => {
         const isDiagnosed = diagnoses.some(d => d.visit_id === visit.visit_id);
@@ -82,6 +86,22 @@ const Visits: React.FC = () => {
         });
 
     }, [visits, user, clinicFilter, statusFilter, startDate, endDate, diagnoses]);
+
+    // Reset page to 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [clinicFilter, statusFilter, startDate, endDate]);
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredVisits.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentVisits = filteredVisits.slice(indexOfFirstItem, indexOfLastItem);
+
+    const handlePageChange = (pageNumber: number) => {
+        if (pageNumber < 1 || pageNumber > totalPages) return;
+        setCurrentPage(pageNumber);
+    };
     
     const pastDiagnosesForSelectedPatient = useMemo(() => {
         if (!selectedPatientForHistory) return [];
@@ -147,6 +167,28 @@ const Visits: React.FC = () => {
             default: return 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
         }
     }
+    
+    const PaginationControls = () => {
+        if (totalPages <= 1) return null;
+        return (
+            <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4">
+                <span className="text-sm text-gray-700 dark:text-gray-400">
+                    عرض {indexOfFirstItem + 1} إلى {Math.min(indexOfLastItem, filteredVisits.length)} من أصل {filteredVisits.length} سجل
+                </span>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <ChevronRightIcon className="w-4 h-4" />
+                        <span className="hidden sm:inline">السابق</span>
+                    </button>
+                    <span className="text-sm text-gray-700 dark:text-gray-400">صفحة {currentPage} من {totalPages}</span>
+                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <span className="hidden sm:inline">التالي</span>
+                        <ChevronLeftIcon className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
@@ -233,7 +275,7 @@ const Visits: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {filteredVisits.map(visit => {
+                        {currentVisits.map(visit => {
                             const hasDiagnosis = diagnoses.some(d => d.visit_id === visit.visit_id);
                             const effectiveStatus = getEffectiveStatus(visit);
                             return (
@@ -269,6 +311,8 @@ const Visits: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            <PaginationControls />
 
             <Modal title={`تسجيل تشخيص للزيارة #${selectedVisit}`} isOpen={isDiagnosisModalOpen} onClose={handleCloseDiagnosisModal}>
                  <div className="flex items-center gap-2 mb-4">

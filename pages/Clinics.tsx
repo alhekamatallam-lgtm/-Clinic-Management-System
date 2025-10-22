@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Clinic, Role } from '../types';
 import Modal from '../components/ui/Modal';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
+import { PlusIcon, PencilIcon, TrashIcon, ChevronRightIcon, ChevronLeftIcon } from '@heroicons/react/24/solid';
 
 const Clinics: React.FC = () => {
     const { user, clinics, doctors, addClinic, updateClinic, deleteClinic, isAdding } = useApp();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const initialFormState: Partial<Omit<Clinic, 'clinic_id' | 'doctor_name'>> = {
         clinic_name: '',
@@ -20,6 +24,17 @@ const Clinics: React.FC = () => {
     };
     const [formData, setFormData] = useState(initialFormState);
     const isManager = user?.role === Role.Manager;
+
+    // Pagination calculations
+    const totalPages = Math.ceil(clinics.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentClinics = clinics.slice(indexOfFirstItem, indexOfLastItem);
+
+    const handlePageChange = (pageNumber: number) => {
+        if (pageNumber < 1 || pageNumber > totalPages) return;
+        setCurrentPage(pageNumber);
+    };
 
     const getDoctorName = (doctorId: number) => {
         return doctors.find(d => d.doctor_id === doctorId)?.doctor_name || 'N/A';
@@ -83,6 +98,28 @@ const Clinics: React.FC = () => {
         handleCloseModal();
     };
 
+    const PaginationControls = () => {
+        if (totalPages <= 1) return null;
+        return (
+            <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4">
+                <span className="text-sm text-gray-700 dark:text-gray-400">
+                    عرض {indexOfFirstItem + 1} إلى {Math.min(indexOfLastItem, clinics.length)} من أصل {clinics.length} سجل
+                </span>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <ChevronRightIcon className="w-4 h-4" />
+                        <span className="hidden sm:inline">السابق</span>
+                    </button>
+                    <span className="text-sm text-gray-700 dark:text-gray-400">صفحة {currentPage} من {totalPages}</span>
+                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <span className="hidden sm:inline">التالي</span>
+                        <ChevronLeftIcon className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-6">
@@ -109,7 +146,7 @@ const Clinics: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {clinics.map(clinic => (
+                        {currentClinics.map(clinic => (
                             <tr key={clinic.clinic_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{clinic.clinic_id}</td>
                                 <td className="p-3 text-sm text-gray-700 dark:text-gray-300">{clinic.clinic_name}</td>
@@ -133,6 +170,8 @@ const Clinics: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            <PaginationControls />
             
             <Modal title={selectedClinic ? 'تعديل عيادة' : 'إضافة عيادة جديدة'} isOpen={isModalOpen} onClose={handleCloseModal}>
                 <form onSubmit={handleSubmit} className="space-y-4">

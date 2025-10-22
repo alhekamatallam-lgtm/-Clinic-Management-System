@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Role, User, Clinic, Doctor } from '../types';
 import Modal from '../components/ui/Modal';
-import { PlusIcon, PencilIcon, KeyIcon, NoSymbolIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
+import { PlusIcon, PencilIcon, KeyIcon, NoSymbolIcon, CheckCircleIcon, ChevronRightIcon, ChevronLeftIcon } from '@heroicons/react/24/solid';
 
 const translateRole = (role: Role) => {
     switch(role) {
@@ -22,6 +22,10 @@ const Users: React.FC = () => {
     const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
     // State for forms
     const initialFormState: Partial<User> = { Name: '', role: Role.Reception, username: '', password: '', clinic_id: undefined, doctor_id: undefined, doctor_name: undefined, status: 'مفعل' };
     const [formData, setFormData] = useState<Partial<User>>(initialFormState);
@@ -29,6 +33,17 @@ const Users: React.FC = () => {
     const [selectedDoctorForForm, setSelectedDoctorForForm] = useState<Doctor | null>(null);
 
     const isManager = currentUser?.role === Role.Manager;
+
+    // Pagination calculations
+    const totalPages = Math.ceil(users.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentUsers = users.slice(indexOfFirstItem, indexOfLastItem);
+
+    const handlePageChange = (pageNumber: number) => {
+        if (pageNumber < 1 || pageNumber > totalPages) return;
+        setCurrentPage(pageNumber);
+    };
 
     const handleOpenAddModal = () => {
         setSelectedUser(null);
@@ -209,6 +224,28 @@ const Users: React.FC = () => {
 
     const isDoctorForm = formData.role === Role.Doctor;
 
+    const PaginationControls = () => {
+        if (totalPages <= 1) return null;
+        return (
+            <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4">
+                <span className="text-sm text-gray-700 dark:text-gray-400">
+                    عرض {indexOfFirstItem + 1} إلى {Math.min(indexOfLastItem, users.length)} من أصل {users.length} سجل
+                </span>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <ChevronRightIcon className="w-4 h-4" />
+                        <span className="hidden sm:inline">السابق</span>
+                    </button>
+                    <span className="text-sm text-gray-700 dark:text-gray-400">صفحة {currentPage} من {totalPages}</span>
+                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="flex items-center justify-center px-3 h-8 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <span className="hidden sm:inline">التالي</span>
+                        <ChevronLeftIcon className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-6">
@@ -234,7 +271,7 @@ const Users: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {users.map(userRow => {
+                        {currentUsers.map(userRow => {
                             const isSelf = currentUser?.user_id === userRow.user_id;
                             return (
                                 <tr key={userRow.user_id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${userRow.status === 'معطل' ? 'opacity-60 bg-gray-50 dark:bg-gray-800/50' : ''}`}>
@@ -263,6 +300,8 @@ const Users: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            <PaginationControls />
 
             <Modal title={selectedUser ? 'تعديل مستخدم' : 'إضافة مستخدم جديد'} isOpen={isAddEditModalOpen} onClose={handleCloseModals}>
                 <form onSubmit={handleAddEditSubmit} className="space-y-4">
